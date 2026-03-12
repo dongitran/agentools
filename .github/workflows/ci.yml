@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  test:
+    name: Test on Node.js ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: |
+          cd package
+          npm install
+        shell: bash
+
+      - name: Run tests with coverage
+        run: |
+          cd package
+          npx c8 --all --include='scripts/**/*.js' --check-coverage --lines 90 --functions 90 --branches 80 node --test
+        shell: bash
+
+      - name: Test CLI installation
+        run: |
+          cd package
+          npm install
+          npm install -g .
+          agentools --version
+        shell: bash
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Upgrade npm for Trusted Publisher
+        run: npm install -g npm@latest
+
+      - name: Check file structure
+        run: |
+          echo "Checking package structure..."
+          test -f package/package.json
+          test -f package/bin/cli.js
+          test -f package/scripts/installer.js
+          test -f package/scripts/platforms.js
+          test -d package/test
+          echo "✓ All required files exist"
+
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Upgrade npm for Trusted Publisher
+        run: npm install -g npm@latest
+
+      - name: Create tarball
+        run: |
+          cd package
+          npm pack
+          ls -lh *.tgz
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: package/*.tgz
+          retention-days: 7
+
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [test, lint, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write  # Required for provenance
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Upgrade npm for Trusted Publisher
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: |
+          cd package
+          npm publish --provenance --access public

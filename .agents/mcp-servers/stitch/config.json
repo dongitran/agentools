@@ -1,0 +1,14 @@
+{
+    "name": "stitch",
+    "description": "Stitch MCP Server - Generate and manage UI designs with Google's Stitch API",
+    "command": "npx",
+    "args": [
+        "-y",
+        "google-stitch-mcp",
+        "proxy"
+    ],
+    "bitwardenEnv": {
+        "STITCH_API_KEY": "GCP_STITCH_API_KEY"
+    },
+    "enabled": true
+}

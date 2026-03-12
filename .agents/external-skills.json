@@ -1,0 +1,101 @@
+{
+  "sources": [
+    {
+      "name": "vercel-labs",
+      "repo": "https://github.com/vercel-labs/agent-skills.git",
+      "branch": "main",
+      "skills": [
+        {
+          "path": "skills/react-best-practices",
+          "name": "react-best-practices"
+        },
+        {
+          "path": "skills/web-design-guidelines",
+          "name": "web-design-guidelines"
+        }
+      ],
+      "license": "MIT",
+      "attribution": "Skills from Vercel Labs (https://github.com/vercel-labs/agent-skills)"
+    },
+    {
+      "name": "everything-claude-code",
+      "repo": "https://github.com/affaan-m/everything-claude-code.git",
+      "branch": "main",
+      "skills": [
+        {
+          "path": "skills/backend-patterns",
+          "name": "backend-patterns"
+        },
+        {
+          "path": "skills/coding-standards",
+          "name": "coding-standards"
+        },
+        {
+          "path": "skills/continuous-learning",
+          "name": "continuous-learning"
+        },
+        {
+          "path": "skills/eval-harness",
+          "name": "eval-harness"
+        },
+        {
+          "path": "skills/frontend-patterns",
+          "name": "frontend-patterns"
+        },
+        {
+          "path": "skills/postgres-patterns",
+          "name": "postgres-patterns"
+        },
+        {
+          "path": "skills/project-guidelines-example",
+          "name": "project-guidelines-example"
+        },
+        {
+          "path": "skills/security-review",
+          "name": "security-review"
+        },
+        {
+          "path": "skills/strategic-compact",
+          "name": "strategic-compact"
+        },
+        {
+          "path": "skills/tdd-workflow",
+          "name": "tdd-workflow"
+        },
+        {
+          "path": "skills/verification-loop",
+          "name": "verification-loop"
+        }
+      ],
+      "license": "MIT",
+      "attribution": "Skills from Everything Claude Code by Affaan Mustafa (https://github.com/affaan-m/everything-claude-code)"
+    },
+    {
+      "name": "playwright-skill",
+      "repo": "https://github.com/lackeyjb/playwright-skill.git",
+      "branch": "main",
+      "skills": [
+        {
+          "path": "skills/playwright-skill",
+          "name": "playwright"
+        }
+      ],
+      "license": "MIT",
+      "attribution": "Playwright skill from lackeyjb (https://github.com/lackeyjb/playwright-skill)"
+    },
+    {
+      "name": "agent-nestjs-skills",
+      "repo": "https://github.com/Kadajett/agent-nestjs-skills.git",
+      "branch": "main",
+      "skills": [
+        {
+          "path": ".",
+          "name": "nestjs-best-practices",
+          "excludePaths": [".git", ".github", "README.md", "scripts", "website"]
+        }
+      ],
+      "license": "MIT",
+      "attribution": "NestJS Best Practices from Kadajett (https://github.com/Kadajett/agent-nestjs-skills)"
+    }
+  ]
+}

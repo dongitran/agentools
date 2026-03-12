@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Config - Minimal Skill Manager for AI Coding Assistants</title>
+    <meta name="description" content="Minimal skill manager with 2 core skills. Add unlimited custom sources from GitHub. Full user control.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Grain Overlay -->
+    <div class="grain-overlay"></div>
+
+    <!-- Animated Gradient Mesh -->
+    <div class="gradient-mesh">
+        <div class="mesh-blob mesh-1"></div>
+        <div class="mesh-blob mesh-2"></div>
+        <div class="mesh-blob mesh-3"></div>
+        <div class="mesh-blob mesh-4"></div>
+    </div>
+
+    <!-- Geometric Decorations -->
+    <div class="geo-decorations">
+        <div class="geo geo-1"></div>
+        <div class="geo geo-2"></div>
+        <div class="geo geo-3"></div>
+        <div class="geo geo-4"></div>
+        <div class="geo geo-5"></div>
+    </div>
+
+    <!-- Stars -->
+    <div class="stars-container">
+        <div class="stars"></div>
+        <div class="stars stars-2"></div>
+    </div>
+
+    <!-- Neural Network Canvas -->
+    <canvas id="neuralCanvas"></canvas>
+
+    <!-- Custom Cursor -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- Hero Section - Asymmetric Layout -->
+    <header class="hero" id="hero">
+        <div class="container">
+            <div class="hero-layout">
+                <!-- Left Side - Main Content -->
+                <div class="hero-main">
+                    <div class="hero-badge">
+                        <span class="badge-dot"></span>
+                        <span>Open Source • v2.2</span>
+                    </div>
+
+                    <h1 class="hero-title">
+                        <span class="title-word title-word-1">AI</span>
+                        <span class="title-word title-word-2">AGENT</span>
+                        <span class="title-word title-word-3">CONFIG</span>
+                    </h1>
+
+                    <p class="hero-desc">
+                        Minimal Skill Manager<br>
+                        Full User Control
+                    </p>
+
+                    <div class="hero-cta">
+                        <a href="https://www.npmjs.com/package/agentools" class="btn-main">
+                            <span class="btn-text">Get Started</span>
+                            <span class="btn-arrow">→</span>
+                        </a>
+                        <a href="https://github.com/dongitran/agentools" class="btn-ghost">
+                            <span>GitHub</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Side - Terminal -->
+                <div class="hero-terminal">
+                    <div class="terminal">
+                        <div class="terminal-bar">
+                            <div class="terminal-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="terminal-title">zsh</span>
+                        </div>
+                        <div class="terminal-content">
+                            <div class="terminal-line">
+                                <span class="t-prompt">~</span>
+                                <span class="t-cmd">npm install -g agentools</span>
+                            </div>
+                            <div class="terminal-line t-output">
+                                <span>+ agentools@2.2.0</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="t-prompt">~</span>
+                                <span class="t-cmd">agentools init</span>
+                            </div>
+                            <div class="terminal-line t-output t-success">
+                                <span>✓ Config created at ~/.agentools/config.json</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="t-prompt">~</span>
+                                <span class="t-cmd">agentools install</span>
+                            </div>
+                            <div class="terminal-line t-output t-success">
+                                <span>✓ Installed 2 core skills to all platforms</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="t-prompt">~</span>
+                                <span class="t-cursor"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="terminal-glow"></div>
+                </div>
+            </div>
+
+            <!-- Floating Tag -->
+            <div class="floating-tag">
+                2 Core Skills • Unlimited Custom Sources
+            </div>
+        </div>
+
+        <!-- Scroll Hint -->
+        <div class="scroll-hint">
+            <div class="scroll-line"></div>
+        </div>
+    </header>
+
+    <!-- Skills Section -->
+    <section class="section-skills" id="skills">
+        <div class="container">
+            <div class="section-label">CORE SKILLS</div>
+            <h2 class="section-heading">2 Essential Skills Bundled</h2>
+            <p class="skills-intro">Minimal, focused core for managing your AI coding assistant skills. Add unlimited custom skills from any GitHub repository.</p>
+
+            <!-- Core Skills -->
+            <div class="category-row">
+                <div class="category-header">
+                    <div class="category-tag">Package Core</div>
+                    <div class="category-meta">2 skills • Always bundled</div>
+                </div>
+                <div class="cards-row">
+                    <article class="card card-skill">
+                        <div class="card-icon">
+                            <span>⚙️</span>
+                            <div class="icon-ring"></div>
+                        </div>
+                        <h3 class="card-title">config-manager</h3>
+                        <p class="card-desc">Manage configuration and custom skill sources from GitHub</p>
+                        <div class="card-tags">
+                            <span>Config</span>
+                            <span>Sources</span>
+                            <span>CLI</span>
+                        </div>
+                    </article>
+
+                    <article class="card card-skill">
+                        <div class="card-icon">
+                            <span>🔄</span>
+                            <div class="icon-ring"></div>
+                        </div>
+                        <h3 class="card-title">skill-updater</h3>
+                        <p class="card-desc">Update skills from GitHub repositories automatically</p>
+                        <div class="card-tags">
+                            <span>Sync</span>
+                            <span>Update</span>
+                            <span>GitHub</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <!-- Add More Skills -->
+            <div class="category-row">
+                <div class="category-header">
+                    <div class="category-tag">Custom Sources</div>
+                    <div class="category-meta">User-configurable • Unlimited</div>
+                </div>
+
+                <article class="card card-workflow card-featured">
+                    <div class="featured-label">YOUR CHOICE</div>
+                    <div class="card-icon card-icon-lg">
+                        <span>➕</span>
+                        <div class="icon-ring"></div>
+                        <div class="icon-ring icon-ring-2"></div>
+                    </div>
+                    <h3 class="card-title">Add Any Skills from GitHub</h3>
+                    <p class="card-desc">Add skills from Vercel Labs, Everything Claude Code, your company's private repo, or any GitHub repository. Full control over what you install.</p>
+                    <div class="workflow-flow">
+                        <span>agentools source add &lt;repo&gt;</span><span>→</span>
+                        <span>agentools update</span><span>→</span>
+                        <span>agentools install</span>
+                    </div>
+                </article>
+
+                <div class="cards-row cards-row-3">
+                    <article class="card card-workflow">
+                        <div class="card-icon">
+                            <span>⚛️</span>
+                            <div class="icon-ring"></div>
+                        </div>
+                        <h3 class="card-title">Vercel Labs</h3>
+                        <p class="card-desc">React/Next.js best practices from Vercel Engineering</p>
+                        <div class="workflow-meta">github.com/vercel-labs/agent-skills</div>
+                    </article>
+
+                    <article class="card card-workflow">
+                        <div class="card-icon">
+                            <span>💎</span>
+                            <div class="icon-ring"></div>
+                        </div>
+                        <h3 class="card-title">Everything Claude</h3>
+                        <p class="card-desc">Full-stack development skills from the community</p>
+                        <div class="workflow-meta">github.com/affaan-m/everything-claude-code</div>
+                    </article>
+
+                    <article class="card card-workflow">
+                        <div class="card-icon">
+                            <span>🏢</span>
+                            <div class="icon-ring"></div>
+                        </div>
+                        <h3 class="card-title">Your Company</h3>
+                        <p class="card-desc">Private skills repo with your team's standards</p>
+                        <div class="workflow-meta">github.com/your-org/skills</div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Section -->
+    <section class="section-why" id="why">
+        <div class="container">
+            <div class="why-grid">
+                <div class="why-content">
+                    <div class="section-label">WHY USE IT</div>
+                    <h2 class="section-heading">Minimal Core.<br>Full Control.</h2>
+                    <p class="why-desc">Stop installing skills you don't need. Start with 2 essential tools, add only what you want from GitHub.</p>
+                </div>
+
+                <div class="why-features">
+                    <div class="feature-item">
+                        <div class="feature-num">01</div>
+                        <div class="feature-content">
+                            <h3>Minimal Core</h3>
+                            <p>Only 2 bundled skills - config manager and skill updater</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-num">02</div>
+                        <div class="feature-content">
+                            <h3>Zero Defaults</h3>
+                            <p>No external sources by default - you decide what to install</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-num">03</div>
+                        <div class="feature-content">
+                            <h3>Unlimited Sources</h3>
+                            <p>Add skills from any GitHub repo - public or private</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-num">04</div>
+                        <div class="feature-content">
+                            <h3>Team Sharing</h3>
+                            <p>Export/import configs for team collaboration</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platforms Section -->
+    <section class="section-platforms" id="platforms">
+        <div class="container">
+            <div class="section-label">COMPATIBILITY</div>
+            <h2 class="section-heading">Supported Platforms</h2>
+
+            <div class="platforms-grid">
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #a855f7;">🟣</div>
+                    <div class="platform-info">
+                        <h3>Claude Code</h3>
+                        <code>~/.claude/skills/</code>
+                    </div>
+                </div>
+
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #3b82f6;">🔵</div>
+                    <div class="platform-info">
+                        <h3>Antigravity</h3>
+                        <code>~/.gemini/antigravity/skills/</code>
+                    </div>
+                </div>
+
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #10b981;">🟢</div>
+                    <div class="platform-info">
+                        <h3>Cursor</h3>
+                        <code>~/.cursor/skills/</code>
+                    </div>
+                </div>
+
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #06b6d4;">🌊</div>
+                    <div class="platform-info">
+                        <h3>Windsurf</h3>
+                        <code>~/.windsurf/skills/</code>
+                    </div>
+                </div>
+
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #f59e0b;">⚡</div>
+                    <div class="platform-info">
+                        <h3>Codex CLI</h3>
+                        <code>~/.codex/skills/</code>
+                    </div>
+                </div>
+
+                <div class="platform-item">
+                    <div class="platform-icon" style="--accent: #ec4899;">🐙</div>
+                    <div class="platform-info">
+                        <h3>GitHub Copilot</h3>
+                        <code>~/.github/copilot-instructions.md</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">AI AGENT CONFIG</div>
+                <p class="footer-credit">
+                    Made with 🤖 by <a href="https://github.com/dongitran">Dong Tran</a>
+                </p>
+                <p class="footer-note">
+                    v2.2.0 • Minimal core • Full user control
+                </p>
+                <p class="footer-tagline">Empowering the AI-assisted development universe</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Custom Cursor
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorRing = document.querySelector('.cursor-ring');
+
+        let mouseX = 0, mouseY = 0;
+        let ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorDot.style.left = mouseX + 'px';
+            cursorDot.style.top = mouseY + 'px';
+        });
+
+        function animateCursor() {
+            ringX += (mouseX - ringX) * 0.15;
+            ringY += (mouseY - ringY) * 0.15;
+            cursorRing.style.left = ringX + 'px';
+            cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // Cursor hover effects
+        document.querySelectorAll('a, button, .card').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursorRing.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                cursorRing.style.borderColor = '#22d3ee';
+            });
+            el.addEventListener('mouseleave', () => {
+                cursorRing.style.transform = 'translate(-50%, -50%) scale(1)';
+                cursorRing.style.borderColor = 'rgba(255,255,255,0.5)';
+            });
+        });
+
+        // Neural Network
+        const canvas = document.getElementById('neuralCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        const nodes = [];
+        for (let i = 0; i < 40; i++) {
+            nodes.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4
+            });
+        }
+
+        function drawNetwork() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+                if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+                if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+            });
+
+            // Draw connections
+            nodes.forEach((n1, i) => {
+                nodes.slice(i + 1).forEach(n2 => {
+                    const dx = n1.x - n2.x;
+                    const dy = n1.y - n2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 180) {
+                        ctx.beginPath();
+                        ctx.moveTo(n1.x, n1.y);
+                        ctx.lineTo(n2.x, n2.y);
+                        ctx.strokeStyle = `rgba(34, 211, 238, ${0.12 * (1 - dist / 180)})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                });
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.5)';
+                ctx.fill();
+            });
+
+            requestAnimationFrame(drawNetwork);
+        }
+        drawNetwork();
+
+        // Scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.card, .feature-item, .platform-item, .section-heading, .section-label').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

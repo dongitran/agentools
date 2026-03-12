@@ -1,0 +1,7 @@
+{
+    "name": "playwright",
+    "description": "Playwright MCP Server - Browser automation via accessibility snapshots",
+    "command": "npx",
+    "args": ["-y", "@playwright/mcp@latest"],
+    "enabled": true
+}

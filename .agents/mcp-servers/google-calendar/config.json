@@ -1,0 +1,19 @@
+{
+    "name": "google-calendar",
+    "description": "Google Calendar MCP Server - Manage Google Calendar events, view schedules, and create/update calendar items",
+    "command": "npx",
+    "args": [
+        "-y",
+        "@dongtran/google-calendar-mcp"
+    ],
+    "bitwardenEnv": {
+        "GOOGLE_OAUTH_CREDENTIALS_JSON": "GCP_OAUTH_CALENDAR_MCP_MAIN"
+    },
+    "enabled": true,
+    "disabledTools": [
+        "list-colors",
+        "get-freebusy",
+        "respond-to-event",
+        "manage-accounts"
+    ]
+}
