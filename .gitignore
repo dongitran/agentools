@@ -8,6 +8,3 @@ node_modules/
 coverage/
 .c8_output/
 .nyc_output/
-
-# Package bundled files (for npm only, not git)
-package/.agents/
