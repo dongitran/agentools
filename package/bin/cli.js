@@ -229,9 +229,9 @@ function init(args) {
     configManager.setConfigValue("repository.local", localPath);
     console.log("✅ Repository configured!\n");
 
-    // Auto-install after initial clone
+    // Auto-install after initial clone (with sync to populate cache)
     console.log("📥 Auto-installing skills + MCP servers...\n");
-    install(["--force", "--no-sync"]);
+    install(["--force"]);
   }
 
   const detected = platforms.detectAll();
