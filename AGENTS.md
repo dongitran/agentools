@@ -74,7 +74,7 @@ agentools/
 
 | Platform | Skills Path | MCP Support |
 |----------|-------------|-------------|
-| Claude Code | `~/.claude/skills/` | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Claude Code | `~/.claude/skills/` | `~/.claude.json` |
 | Antigravity IDE | `~/.gemini/antigravity/skills/` | `~/.gemini/antigravity/mcp_config.json` |
 | Cursor | `~/.cursor/skills/` | `~/.cursor/mcp.json` |
 | Windsurf | `~/.windsurf/skills/` | `~/.codeium/windsurf/mcp_config.json` |

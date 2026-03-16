@@ -59,21 +59,16 @@ describe("Platforms Module", () => {
       fs.mkdirSync(claude.configPath, { recursive: true });
       assert.strictEqual(claude.detect(), true);
     });
-    it("should have mcpConfigPath", () => {
+    it("should have mcpConfigPath pointing to .claude.json", () => {
       const claude = platforms.getByName("claude");
       assert.ok(claude.mcpConfigPath);
-      assert.ok(claude.mcpConfigPath.includes("claude_desktop_config.json"));
+      assert.ok(claude.mcpConfigPath.endsWith(".claude.json"));
     });
-    it("should return correct mcpConfigPath for current platform", () => {
+    it("should return cross-platform mcpConfigPath", () => {
       const claude = platforms.getByName("claude");
       const mcpPath = claude.mcpConfigPath;
-      if (process.platform === "darwin") {
-        assert.ok(mcpPath.includes(path.join("Library", "Application Support", "Claude")));
-      } else if (process.platform === "win32") {
-        assert.ok(mcpPath.includes(path.join("Claude", "claude_desktop_config.json")));
-      } else {
-        assert.ok(mcpPath.includes(path.join(".config", "Claude")));
-      }
+      // Claude Code CLI uses ~/.claude.json on all platforms
+      assert.ok(mcpPath.includes(".claude.json"));
     });
   });
 

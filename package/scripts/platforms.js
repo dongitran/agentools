@@ -33,13 +33,9 @@ const SUPPORTED = [
       return path.join(HOME, this.configDir, this.commandsDir);
     },
     get mcpConfigPath() {
-      if (process.platform === "darwin") {
-        return path.join(HOME, "Library", "Application Support", "Claude", "claude_desktop_config.json");
-      } else if (process.platform === "win32") {
-        return path.join(process.env.APPDATA || "", "Claude", "claude_desktop_config.json");
-      } else {
-        return path.join(HOME, ".config", "Claude", "claude_desktop_config.json");
-      }
+      // Claude Code CLI stores MCP servers in ~/.claude.json (cross-platform)
+      // Note: This is different from Claude Desktop which uses claude_desktop_config.json
+      return path.join(HOME, ".claude.json");
     },
     detect() {
       return fs.existsSync(this.configPath);
