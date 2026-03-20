@@ -1,8 +1,8 @@
 # AI Agent Config
 
-> CLI tool to manage AI coding skills & workflows across platforms (Claude Code, Antigravity, Cursor, Windsurf, Codex CLI)
+> CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity, Cursor, Windsurf, Codex CLI)
 
-**Version:** 2.8.1
+**Version:** 2.9.0
 **NPM:** https://www.npmjs.com/package/agentools
 **Repository:** https://github.com/dongitran/agentools
 
@@ -20,7 +20,8 @@ agentools/
 │   │   ├── config-manager.js   # Config CRUD (~/.agentools/config.json)
 │   │   ├── external-sync.js    # Sync skills from external GitHub repos
 │   │   ├── sync-manager.js     # Git push/pull to sync-repo
-│   │   ├── installer.js        # Install skills/workflows/MCP to platform directories
+│   │   ├── installer.js        # Main installer (delegates to skill/mcp/rule installers)
+│   │   ├── rules-installer.js  # Global rules merge & install logic
 │   │   ├── mcp-installer.js    # MCP server discovery, validation, install
 │   │   ├── secret-manager.js   # Bitwarden secret sync for MCP env vars
 │   │   ├── platforms.js        # Platform detection (6 platforms)
@@ -33,6 +34,8 @@ agentools/
 ├── .agents/
 │   ├── skills/                 # 15 bundled skills (synced from external sources)
 │   ├── workflows/              # 5 workflows (brainstorm, create-pr, release-notes, sync-bitwarden-to-github, update-skills)
+│   ├── rules/
+│   │   └── global/             # Global .md rules synced across platforms
 │   ├── mcp-servers/            # MCP server configs (config.json per server)
 │   └── external-skills.json    # External skill source definitions
 ├── .github/workflows/
@@ -40,13 +43,14 @@ agentools/
 │   └── sync-external.yml       # Weekly auto-sync external skills (creates PR)
 ├── docs/                       # Project website (GitHub Pages)
 ├── plans/                      # Planning documents
-├── AGENT.md                    # This file
+├── AGENTS.md                   # This file
 └── README.md                   # Project README
 ```
 
 ## Key Concepts
 
 - **Skills**: Folders with `SKILL.md` that AI platforms auto-discover
+- **Global Rules**: `.md` files in `.agents/rules/global/` synced to platform-specific rule files/folders
 - **MCP Servers**: Configs in `.agents/mcp-servers/<name>/config.json` with `bitwardenEnv` for secret resolution
 - **Sync-repo**: Local clone at `~/.agentools/sync-repo` used for git push/pull
 - **External cache**: `~/.agentools-external-cache/` stores cloned external repos
@@ -72,14 +76,14 @@ agentools/
 
 ## Supported Platforms
 
-| Platform | Skills Path | MCP Support |
-|----------|-------------|-------------|
-| Claude Code | `~/.claude/skills/` | `~/.claude.json` |
-| Antigravity IDE | `~/.gemini/antigravity/skills/` | `~/.gemini/antigravity/mcp_config.json` |
-| Cursor | `~/.cursor/skills/` | `~/.cursor/mcp.json` |
-| Windsurf | `~/.windsurf/skills/` | `~/.codeium/windsurf/mcp_config.json` |
-| Codex CLI | `~/.codex/skills/` | `~/.codex/config.toml` |
-| GitHub Copilot | `~/.github/copilot-instructions.md` | - |
+| Platform | Skills Path | MCP Support | Global Rules |
+|----------|-------------|-------------|--------------|
+| Claude Code | `~/.claude/skills/` | `~/.claude.json` | `~/.claude/rules/` |
+| Antigravity IDE | `~/.gemini/antigravity/skills/` | `mcp_config.json` | `GEMINI.md` |
+| Cursor | `~/.cursor/skills/` | `~/.cursor/mcp.json` | `~/.cursor/rules/` |
+| Windsurf | `~/.windsurf/skills/` | `mcp_config.json` | `global_rules.md` |
+| Codex CLI | `~/.codex/skills/` | `config.toml` | `AGENTS.md` |
+| GitHub Copilot | `~/.github/copilot-instructions.md` | - | - |
 
 ---
 

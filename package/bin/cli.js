@@ -163,6 +163,20 @@ function listSkills() {
 
   console.log(`\nSource: ${installer.CACHE_DIR}`);
   console.log("");
+
+  // Global Rules
+  const rulesInstaller = require("../scripts/rules-installer");
+  const globalRules = rulesInstaller.getGlobalRuleFiles();
+
+  console.log("🌐 Global Rules:");
+  if (globalRules.length === 0) {
+    console.log("  (no global rules found)");
+  } else {
+    globalRules.forEach((rulePath) => {
+      console.log(`  • ${path.basename(rulePath)}`);
+    });
+  }
+  console.log("");
 }
 
 /**
@@ -632,6 +646,7 @@ function install(args) {
       const parts = [];
       if (result.skillsCount > 0) parts.push(`${result.skillsCount} skill(s)`);
       if (result.workflowsCount > 0) parts.push(`${result.workflowsCount} workflow(s)`);
+      if (result.rulesCount > 0) parts.push(`${result.rulesCount} rule(s)`);
 
       // Count MCP servers across all platforms
       let mcpTotal = 0;
@@ -664,6 +679,17 @@ function install(args) {
           });
         }
       });
+
+      // Show Global Rules installation status
+      if (result.rulesCount > 0) {
+        console.log(`\n🌐 Global Rules: (${result.rulesCount} file(s))`);
+        result.rulesDetails.forEach((rd) => {
+          const status = rd.installed ? "✓ installed" : "⊗ skipped";
+          const reason = rd.reason ? ` (${rd.reason})` : "";
+          const count = rd.count !== undefined ? ` (${rd.count} new, ${rd.skipped} skipped)` : "";
+          console.log(`  ${status} ${rd.platform}${reason}${count}`);
+        });
+      }
 
       // Hint about secrets sync if MCP servers were installed
       if (mcpTotal > 0) {

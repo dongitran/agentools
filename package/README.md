@@ -1,6 +1,6 @@
 # agentools
 
-> Universal skill & workflow manager for AI coding assistants with bi-directional GitHub sync
+> Universal skill, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync
 
 [![npm version](https://badge.fury.io/js/agentools.svg)](https://www.npmjs.com/package/agentools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -60,16 +60,16 @@ agentools update
 
 ## Supported Platforms
 
-| Platform | Skills Path | MCP Support | Format |
-|----------|-------------|-------------|--------|
-| Claude Code | `~/.claude/skills/` | ✅ `~/.claude.json` | JSON |
-| Antigravity IDE | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | JSON |
-| **Cursor** | `~/.cursor/skills/` | ✅ **`~/.cursor/mcp.json`** | JSON |
-| **Windsurf** | `~/.windsurf/skills/` | ✅ **`~/.codeium/windsurf/mcp_config.json`** | JSON |
-| **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | **TOML** |
-| GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | - |
+| Platform | Skills Path | MCP Support | Global Rules | Format |
+|----------|-------------|-------------|--------------|--------|
+| Claude Code | `~/.claude/skills/` | ✅ `~/.claude.json` | ✅ `~/.claude/rules/` | Folder |
+| Antigravity IDE | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | ✅ `~/.gemini/GEMINI.md` | Single file |
+| **Cursor** | `~/.cursor/skills/` | ✅ **`~/.cursor/mcp.json`** | ✅ `~/.cursor/rules/` | Folder |
+| **Windsurf** | `~/.windsurf/skills/` | ✅ **`~/.codeium/windsurf/mcp_config.json`** | ✅ `global_rules.md` | Single file |
+| **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
+| GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
 
-**New in v2.8.0:** MCP server support for Cursor, Windsurf, and Codex CLI!
+**New in v2.9.0:** Global Rules Sync support for all major platforms!
 
 ## Secret Management
 
@@ -88,6 +88,20 @@ agentools secrets sync
 **Setup:** See [Bitwarden MCP Setup Guide](./mcp-servers/bitwarden/README.md)
 
 **Auto-configuration:** Package automatically configures Bitwarden MCP server in Antigravity on install
+
+## Global Rules Sync
+
+Manage AI behavior rules centrally and sync them across all your local AI platforms.
+
+**Setup:**
+1. Create a directory `.agents/rules/global/` in your sync-repo.
+2. Add your `.md` rule files there (e.g., `coding-standards.md`, `project-context.md`).
+3. Run `agentools update` or `agentools install`.
+
+**How it works:**
+- **Folder-based (Claude, Cursor):** Copies each `.md` file individually to the platform's rules directory.
+- **File-based (Windsurf, Antigravity, Codex):** Merges all global rules into a single file, adding a managed header and clear separators.
+- **Safety:** Will not overwrite existing rule files unless the `--force` flag is used.
 
 ## Configuration
 

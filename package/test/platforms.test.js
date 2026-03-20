@@ -70,6 +70,18 @@ describe("Platforms Module", () => {
       // Claude Code CLI uses ~/.claude.json on all platforms
       assert.ok(mcpPath.includes(".claude.json"));
     });
+    it("should have rulesType 'folder'", () => {
+      const claude = platforms.getByName("claude");
+      assert.strictEqual(claude.rulesType, "folder");
+    });
+    it("should have rulesDir 'rules'", () => {
+      const claude = platforms.getByName("claude");
+      assert.strictEqual(claude.rulesDir, "rules");
+    });
+    it("should have rulesPath pointing to ~/.claude/rules/", () => {
+      const claude = platforms.getByName("claude");
+      assert.ok(claude.rulesPath.endsWith(path.join(".claude", "rules")));
+    });
   });
 
   describe("Antigravity platform", () => {
@@ -100,6 +112,18 @@ describe("Platforms Module", () => {
       fs.mkdirSync(appPath, { recursive: true });
       assert.strictEqual(ag.detect(), true);
     });
+    it("should have rulesType 'file'", () => {
+      const ag = platforms.getByName("antigravity");
+      assert.strictEqual(ag.rulesType, "file");
+    });
+    it("should have rulesFile 'GEMINI.md'", () => {
+      const ag = platforms.getByName("antigravity");
+      assert.strictEqual(ag.rulesFile, "GEMINI.md");
+    });
+    it("should have rulesPath pointing to ~/.gemini/GEMINI.md", () => {
+      const ag = platforms.getByName("antigravity");
+      assert.ok(ag.rulesPath.endsWith(path.join(".gemini", "GEMINI.md")));
+    });
   });
 
   describe("Cursor platform", () => {
@@ -123,6 +147,10 @@ describe("Platforms Module", () => {
       fs.mkdirSync(appPath, { recursive: true });
       assert.strictEqual(cursor.detect(), true);
     });
+    it("should have rulesType 'folder'", () => {
+      const cursor = platforms.getByName("cursor");
+      assert.strictEqual(cursor.rulesType, "folder");
+    });
   });
 
   describe("Windsurf platform", () => {
@@ -131,6 +159,19 @@ describe("Platforms Module", () => {
       fs.mkdirSync(ws.configPath, { recursive: true });
       assert.strictEqual(ws.detect(), true);
     });
+    it("should have rulesType 'file'", () => {
+      const ws = platforms.getByName("windsurf");
+      assert.strictEqual(ws.rulesType, "file");
+    });
+    it("should have rulesFile 'global_rules.md'", () => {
+      const ws = platforms.getByName("windsurf");
+      assert.strictEqual(ws.rulesFile, "global_rules.md");
+    });
+    it("should have rulesPath pointing to memories/global_rules.md", () => {
+      const ws = platforms.getByName("windsurf");
+      assert.ok(ws.rulesPath.includes("memories"));
+      assert.ok(ws.rulesPath.endsWith("global_rules.md"));
+    });
   });
 
   describe("Codex platform", () => {
@@ -138,6 +179,18 @@ describe("Platforms Module", () => {
       const codex = platforms.getByName("codex");
       fs.mkdirSync(codex.configPath, { recursive: true });
       assert.strictEqual(codex.detect(), true);
+    });
+    it("should have rulesType 'file'", () => {
+      const codex = platforms.getByName("codex");
+      assert.strictEqual(codex.rulesType, "file");
+    });
+    it("should have rulesFile 'AGENTS.md'", () => {
+      const codex = platforms.getByName("codex");
+      assert.strictEqual(codex.rulesFile, "AGENTS.md");
+    });
+    it("should have rulesPath pointing to ~/.codex/AGENTS.md", () => {
+      const codex = platforms.getByName("codex");
+      assert.ok(codex.rulesPath.endsWith(path.join(".codex", "AGENTS.md")));
     });
   });
 
@@ -235,6 +288,30 @@ describe("Platforms Module", () => {
     it("should return null for platform without workflowsPath", () => {
       const cursor = platforms.getByName("cursor");
       assert.strictEqual(platforms.ensureWorkflowsDir(cursor), null);
+    });
+  });
+
+  describe("ensureRulesDir", () => {
+    it("should create and return rules path for folder-type platform", () => {
+      const claude = platforms.getByName("claude");
+      const p = platforms.ensureRulesDir(claude);
+      assert.ok(p);
+      assert.ok(p.includes("rules"));
+      assert.ok(fs.existsSync(p));
+    });
+    it("should return null for file-type platform", () => {
+      const ag = platforms.getByName("antigravity");
+      assert.strictEqual(platforms.ensureRulesDir(ag), null);
+    });
+    it("should return null for platform without rulesPath", () => {
+      const cp = platforms.getByName("copilot");
+      assert.strictEqual(platforms.ensureRulesDir(cp), null);
+    });
+    it("should not fail if directory already exists", () => {
+      const cursor = platforms.getByName("cursor");
+      platforms.ensureRulesDir(cursor);
+      const p = platforms.ensureRulesDir(cursor);
+      assert.ok(fs.existsSync(p));
     });
   });
 

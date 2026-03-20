@@ -20,11 +20,16 @@ const SUPPORTED = [
     skillsDir: "skills",
     workflowsDir: "workflows",
     commandsDir: "commands",
+    rulesDir: "rules",
+    rulesType: "folder",
     get configPath() {
       return path.join(HOME, this.configDir);
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    get rulesPath() {
+      return path.join(HOME, this.configDir, this.rulesDir);
     },
     get workflowsPath() {
       return path.join(HOME, this.configDir, this.workflowsDir);
@@ -48,11 +53,17 @@ const SUPPORTED = [
     skillsDir: "skills",
     workflowsDir: "global_workflows",
     mcpConfigFile: "mcp_config.json",
+    rulesFile: "GEMINI.md",
+    rulesType: "file",
     get configPath() {
       return path.join(HOME, this.configDir);
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    get rulesPath() {
+      // ~/.gemini/GEMINI.md (directly in .gemini, not in antigravity subfolder)
+      return path.join(HOME, ".gemini", this.rulesFile);
     },
     get workflowsPath() {
       return path.join(HOME, this.configDir, this.workflowsDir);
@@ -75,6 +86,7 @@ const SUPPORTED = [
     configDir: ".cursor",
     skillsDir: "skills",
     rulesDir: "rules",
+    rulesType: "folder",
     mcpConfigFile: "mcp.json",
     get configPath() {
       return path.join(HOME, this.configDir);
@@ -108,6 +120,12 @@ const SUPPORTED = [
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
     },
+    rulesFile: "global_rules.md",
+    rulesType: "file",
+    get rulesPath() {
+      // Windsurf stores global rules in ~/.codeium/windsurf/memories/
+      return path.join(HOME, ".codeium", "windsurf", "memories", this.rulesFile);
+    },
     get mcpConfigPath() {
       // Windsurf stores config in ~/.codeium/windsurf/
       return path.join(HOME, ".codeium", "windsurf", this.mcpConfigFile);
@@ -131,6 +149,11 @@ const SUPPORTED = [
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    rulesFile: "AGENTS.md",
+    rulesType: "file",
+    get rulesPath() {
+      return path.join(HOME, this.configDir, this.rulesFile);
     },
     get mcpConfigPath() {
       return path.join(HOME, this.configDir, this.mcpConfigFile);
@@ -209,6 +232,22 @@ function ensureWorkflowsDir(platform) {
 }
 
 /**
+ * Ensure rules directory exists for a platform (folder-type rules like Claude Code, Cursor)
+ * @param {Object} platform - Platform object
+ * @returns {string|null} Rules path or null if not supported
+ */
+function ensureRulesDir(platform) {
+  if (platform.rulesType !== "folder" || !platform.rulesPath) {
+    return null;
+  }
+  const rulesPath = platform.rulesPath;
+  if (!fs.existsSync(rulesPath)) {
+    fs.mkdirSync(rulesPath, { recursive: true });
+  }
+  return rulesPath;
+}
+
+/**
  * Get all supported platform names
  * @returns {Array} Array of platform names
  */
@@ -222,6 +261,7 @@ module.exports = {
   getByName,
   ensureSkillsDir,
   ensureWorkflowsDir,
+  ensureRulesDir,
   getAllNames,
   HOME,
 };

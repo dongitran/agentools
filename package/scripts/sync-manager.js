@@ -175,6 +175,12 @@ class SyncManager {
                 execSync("git add .agents/mcp-servers/", { cwd: this.repoPath, stdio: "pipe" });
             }
 
+            // Add Global Rules
+            const rulesDir = path.join(this.repoPath, ".agents/rules");
+            if (fs.existsSync(rulesDir)) {
+                execSync("git add .agents/rules/", { cwd: this.repoPath, stdio: "pipe" });
+            }
+
             // Add skills individually, excluding bundled ones
             const skillsDir = path.join(this.repoPath, ".agents/skills");
             const bundledSkills = ["agentools", "config-manager"];

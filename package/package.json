@@ -1,7 +1,7 @@
 {
   "name": "agentools",
-  "version": "1.0.2",
-  "description": "Universal skill & workflow manager for AI coding assistants with bi-directional GitHub sync",
+  "version": "2.9.0",
+  "description": "Universal skill, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync",
   "main": "index.js",
   "bin": {
     "agentools": "./bin/cli.js"

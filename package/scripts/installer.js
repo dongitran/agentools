@@ -9,6 +9,7 @@ const { execSync } = require("child_process");
 const platforms = require("./platforms");
 
 const mcpInstaller = require("./mcp-installer");
+const rulesInstaller = require("./rules-installer");
 
 const REPO_URL = "https://github.com/dongitran/agentools.git";
 const CACHE_DIR = path.join(platforms.HOME, ".agentools-cache");
@@ -260,7 +261,6 @@ function install(options = {}) {
   }
 
   // Check if we have any skills to install
-  console.log("DEBUG: PACKAGE_SKILLS_DIR =", PACKAGE_SKILLS_DIR, "- EXISTS:", fs.existsSync(PACKAGE_SKILLS_DIR));
   if (!isRepoCached() && !fs.existsSync(PACKAGE_SKILLS_DIR)) {
     console.log("⚠️  Skills repository not cached. Run 'agentools update' first.");
     return { skillsCount: 0, platformsCount: 0, workflowsCount: 0, details: [] };
@@ -290,11 +290,19 @@ function install(options = {}) {
     }
   }
 
+  // Install global rules
+  console.log("📋 Installing global rules...");
+  // Note: For now, we use the default rules directory from cache
+  // In dev/test, we might override this
+  const rulesResult = rulesInstaller.installRules({ force });
+
   return {
     skillsCount: totalSkills,
     workflowsCount: totalWorkflows,
+    rulesCount: rulesResult.rulesCount,
     platformsCount: details.length,
     details,
+    rulesDetails: rulesResult.details,
   };
 }
 

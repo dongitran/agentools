@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-03-20
+
+### Added
+- 🎉 **Global Rules Sync** (.agents/rules/global/) support for all platforms
+- ✨ **Claude Code & Cursor**: Folder-based rule sync to `~/.claude/rules/` and `~/.cursor/rules/`
+- ✨ **Antigravity, Windsurf, Codex**: Single-file rule merge sync with specialized headers
+- New command integration: Global rules auto-install during `pull`, `update`, and `install`
+- Enhanced CLI output with rules installation status and repository rules listing
+- Specialized `rules-installer.js` module for multi-platform rule management
+- Rule versioning via managed comment headers in single-file rule platforms
+- Safety check: Rule groups are updated atomically within target files
+
+### Changed
+- Refactored `installer.js` to support delegated installers (Skills, MCP, Rules)
+- Updated `platforms.js` with metadata for folder-based/file-based rules
+- Enhanced `sync-manager.js` to automatically stage and push `.agents/rules/`
+- Improved CLI `list` command to show global rules stored in the sync-repo
+
+### Technical Details
+- **Sync Logic**: Bi-directional rule sync via Git integration
+- **Merging**: Multi-source `.md` rules are aggregated with clear markers
+- **Stability**: Full test coverage for rule installation logic (366 passing tests total)
+
 ## [2.8.0] - 2026-02-15
 
 ### Added
