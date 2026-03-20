@@ -2,7 +2,7 @@
 
 > CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity, Cursor, Windsurf, Codex CLI)
 
-**Version:** 2.9.1
+**Version:** 2.10.0
 **NPM:** https://www.npmjs.com/package/agentools
 **Repository:** https://github.com/dongitran/agentools
 
@@ -30,12 +30,13 @@ agentools/
 │   ├── test/                   # Tests (node --test)
 │   ├── config/
 │   │   └── official-sources.json  # Empty (zero defaults)
-│   └── package.json            # v2.9.1
+│   └── package.json            # v2.10.0
 ├── .agents/
 │   ├── skills/                 # 15 bundled skills (synced from external sources)
 │   ├── workflows/              # 5 workflows (brainstorm, create-pr, release-notes, sync-bitwarden-to-github, update-skills)
 │   ├── rules/
-│   │   └── global/             # Global .md rules synced across platforms
+│   │   ├── global/             # Global .md rules synced across platforms
+│   │   └── local/              # Local rule templates (project-level, installed via workflow/CLI)
 │   ├── mcp-servers/            # MCP server configs (config.json per server)
 │   └── external-skills.json    # External skill source definitions
 ├── .github/workflows/
@@ -51,6 +52,7 @@ agentools/
 
 - **Skills**: Folders with `SKILL.md` that AI platforms auto-discover
 - **Global Rules**: `.md` files in `.agents/rules/global/` synced to platform-specific rule files/folders
+- **Local Rules**: Project-level rule templates in `.agents/rules/local/` — installed via workflow or `agentools rules` CLI
 - **MCP Servers**: Configs in `.agents/mcp-servers/<name>/config.json` with `bitwardenEnv` for secret resolution
 - **Sync-repo**: Local clone at `~/.agentools/sync-repo` used for git push/pull
 - **External cache**: `~/.agentools-external-cache/` stores cloned external repos
@@ -70,6 +72,9 @@ agentools/
 | `source add/remove/list/enable/disable/info` | Manage skill sources |
 | `config get/set/edit/validate/export/import/reset` | Manage config |
 | `secrets sync` | Sync MCP secrets from Bitwarden vault |
+| `rules list` | List available local rules from rule library |
+| `rules add <name>` | Install a local rule to current project (.claude/rules/ + .agents/rules/) |
+| `rules status` | Show rules installed in current project |
 | `sync-external` | Alias for `update` |
 | `list-external` | List available external skills |
 | `version` / `help` | Show version or help |

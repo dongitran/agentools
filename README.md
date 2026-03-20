@@ -80,6 +80,13 @@ agentools help                           # Show help
 agentools secrets sync                   # Sync MCP secrets from Bitwarden vault
 ```
 
+### Local Rules (Project-level)
+```bash
+agentools rules list                     # List available local rule templates
+agentools rules add <name>               # Install rule to .claude/rules/ + .agents/rules/
+agentools rules status                   # Show rules installed in current project
+```
+
 Securely sync MCP secrets from Bitwarden vault to your shell profile. See [Bitwarden MCP Setup](./package/mcp-servers/bitwarden/README.md) for configuration.
 
 ## Supported Platforms
@@ -93,7 +100,7 @@ Securely sync MCP secrets from Bitwarden vault to your shell profile. See [Bitwa
 | **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
 | GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
 
-**New in v2.9.1:** Smart sync for Global Rules — always up to date without needing `--force`.
+**New in v2.10.0:** Local Rules — select and install project-level rule templates via CLI or AI workflow.
 
 ## File Locations
 

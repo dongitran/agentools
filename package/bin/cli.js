@@ -51,6 +51,11 @@ Usage: agentools <command> [options]
 🔐 Secret Management:
   secrets sync                Sync MCP secrets from Bitwarden
 
+📋 Local Rules (Project-level):
+  rules list                  List available local rules from rule library
+  rules add <name>            Add a specific rule to current project
+  rules status                Show rules installed in current project
+
 🔍 External Skills:
   sync-external [opts]        Sync skills from external sources
   list-external               List available external skills
@@ -175,6 +180,20 @@ function listSkills() {
     globalRules.forEach((rulePath) => {
       console.log(`  • ${path.basename(rulePath)}`);
     });
+  }
+  console.log("");
+
+  // Local Rules (project-level templates)
+  const localRules = rulesInstaller.getLocalRuleFiles();
+
+  console.log("📋 Local Rules (project-level templates):");
+  if (localRules.length === 0) {
+    console.log("  (no local rules found)");
+  } else {
+    localRules.forEach((rulePath) => {
+      console.log(`  • ${path.basename(rulePath)}`);
+    });
+    console.log(`  Run 'agentools rules list' for details`);
   }
   console.log("");
 }
@@ -910,6 +929,137 @@ function listExternal() {
 }
 
 /**
+ * Handle rules subcommands: list, add, status
+ */
+function rulesCmd(subcommand, rulesArgs) {
+  const rulesInstaller = require("../scripts/rules-installer");
+
+  if (subcommand === "list") {
+    const localRules = rulesInstaller.getLocalRuleFiles();
+    console.log("\n📋 Available Local Rules\n");
+
+    if (localRules.length === 0) {
+      console.log("  (no local rules found)");
+      console.log(`\n  Source: ${rulesInstaller.REPO_LOCAL_RULES_DIR}`);
+      console.log("  Run 'agentools update' to sync the latest rules.\n");
+      return;
+    }
+
+    localRules.forEach((rulePath) => {
+      const filename = path.basename(rulePath);
+      const content = fs.readFileSync(rulePath, "utf-8");
+      const descMatch = content.match(/^description:\s*(.+)$/m);
+      const tagsMatch = content.match(/^tags:\s*\[(.+)\]$/m);
+      const desc = descMatch ? descMatch[1] : "";
+      const tags = tagsMatch ? tagsMatch[1] : "";
+      console.log(`  • ${filename}`);
+      if (desc) console.log(`    ${desc}`);
+      if (tags) console.log(`    Tags: ${tags}`);
+    });
+
+    console.log(`\n  Source: ${rulesInstaller.REPO_LOCAL_RULES_DIR}`);
+    console.log(
+      "  Use: agentools rules add <name> to install a rule into your project\n"
+    );
+    return;
+  }
+
+  if (subcommand === "add") {
+    const ruleName = rulesArgs[0];
+    if (!ruleName) {
+      console.error("\n❌ Usage: agentools rules add <rule-name>");
+      console.log("   Example: agentools rules add react-nextjs-patterns");
+      console.log("   Run 'agentools rules list' to see available rules.\n");
+      process.exit(1);
+    }
+
+    const localRules = rulesInstaller.getLocalRuleFiles();
+    // Match by filename (with or without .md)
+    const targetName = ruleName.endsWith(".md") ? ruleName : `${ruleName}.md`;
+    const srcFile = localRules.find(
+      (f) => path.basename(f) === targetName
+    );
+
+    if (!srcFile) {
+      console.error(`\n❌ Rule "${ruleName}" not found in local rules library.`);
+      console.log("   Run 'agentools rules list' to see available rules.\n");
+      process.exit(1);
+    }
+
+    // Read content and strip YAML frontmatter before installing
+    const rawContent = fs.readFileSync(srcFile, "utf-8");
+    const strippedContent = rawContent.replace(/^---[\s\S]*?---\n+/, "");
+
+    const cwd = process.cwd();
+    let installed = 0;
+
+    // Install to .claude/rules/ (Claude Code project rules)
+    const claudeRulesDir = path.join(cwd, ".claude", "rules");
+    if (!fs.existsSync(claudeRulesDir)) {
+      fs.mkdirSync(claudeRulesDir, { recursive: true });
+    }
+    const claudeDest = path.join(claudeRulesDir, targetName);
+    fs.writeFileSync(claudeDest, strippedContent, "utf-8");
+    installed++;
+    console.log(`  ✓ Claude Code: .claude/rules/${targetName}`);
+
+    // Install to .agents/rules/ (Antigravity project rules)
+    const agentsRulesDir = path.join(cwd, ".agents", "rules");
+    if (!fs.existsSync(agentsRulesDir)) {
+      fs.mkdirSync(agentsRulesDir, { recursive: true });
+    }
+    const agentsDest = path.join(agentsRulesDir, targetName);
+    fs.writeFileSync(agentsDest, strippedContent, "utf-8");
+    installed++;
+    console.log(`  ✓ Antigravity: .agents/rules/${targetName}`);
+
+    console.log(`\n✅ Rule "${targetName}" installed in ${installed} locations.`);
+    console.log(
+      `\n💡 Commit to save with your project:\n   git add .claude/rules/ .agents/rules/ && git commit -m "chore: add ${targetName} rule"\n`
+    );
+    return;
+  }
+
+  if (subcommand === "status") {
+    const cwd = process.cwd();
+    console.log("\n📋 Project Rules Status\n");
+
+    const claudeRulesDir = path.join(cwd, ".claude", "rules");
+    console.log("  Claude Code (.claude/rules/):");
+    if (fs.existsSync(claudeRulesDir)) {
+      const files = fs.readdirSync(claudeRulesDir).filter((f) => f.endsWith(".md"));
+      if (files.length === 0) {
+        console.log("    (no rules installed)");
+      } else {
+        files.forEach((f) => console.log(`    • ${f}`));
+      }
+    } else {
+      console.log("    (directory not found)");
+    }
+
+    const agentsRulesDir = path.join(cwd, ".agents", "rules");
+    console.log("\n  Antigravity (.agents/rules/):");
+    if (fs.existsSync(agentsRulesDir)) {
+      const files = fs.readdirSync(agentsRulesDir).filter((f) => f.endsWith(".md"));
+      if (files.length === 0) {
+        console.log("    (no rules installed)");
+      } else {
+        files.forEach((f) => console.log(`    • ${f}`));
+      }
+    } else {
+      console.log("    (directory not found)");
+    }
+
+    console.log("");
+    return;
+  }
+
+  console.error(`Unknown rules command: ${subcommand}`);
+  console.log("  Usage: agentools rules list|add <name>|status");
+  process.exit(1);
+}
+
+/**
  * Sync secrets from Bitwarden
  */
 async function secretsSync() {
@@ -991,6 +1141,8 @@ async function secretsSync() {
         console.log('Run "agentools help" for usage information.');
         process.exit(1);
     }
+  } else if (command === "rules") {
+    rulesCmd(subcommand, args.slice(2));
   } else {
     // Single-word commands
     switch (command) {

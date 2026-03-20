@@ -16,6 +16,7 @@ const CACHE_DIR = path.join(platforms.HOME, ".agentools-cache");
 const REPO_SKILLS_DIR = path.join(CACHE_DIR, ".agents", "skills");
 const REPO_WORKFLOWS_DIR = path.join(CACHE_DIR, ".agents", "workflows");
 const PACKAGE_SKILLS_DIR = path.join(__dirname, "..", ".agents", "skills");
+const PACKAGE_WORKFLOWS_DIR = path.join(__dirname, "..", ".agents", "workflows");
 
 /**
  * Copy directory recursively
@@ -118,17 +119,34 @@ function getAvailableSkills() {
 }
 
 /**
- * Get list of available workflows from cached repo
+ * Get all workflow files from both package and repo cache (merged, package first).
+ * Returns array of { name, srcPath } objects.
  */
-function getAvailableWorkflows() {
-  if (!fs.existsSync(REPO_WORKFLOWS_DIR)) {
-    return [];
+function getAllWorkflowFiles() {
+  const workflows = new Map();
+
+  // Package-bundled workflows first (always available)
+  if (fs.existsSync(PACKAGE_WORKFLOWS_DIR)) {
+    fs.readdirSync(PACKAGE_WORKFLOWS_DIR)
+      .filter((f) => f.endsWith(".md"))
+      .forEach((f) => workflows.set(f, path.join(PACKAGE_WORKFLOWS_DIR, f)));
   }
 
-  return fs
-    .readdirSync(REPO_WORKFLOWS_DIR)
-    .filter((name) => name.endsWith(".md"))
-    .map((name) => name.replace(".md", ""));
+  // Repo cache workflows (can override package ones)
+  if (fs.existsSync(REPO_WORKFLOWS_DIR)) {
+    fs.readdirSync(REPO_WORKFLOWS_DIR)
+      .filter((f) => f.endsWith(".md"))
+      .forEach((f) => workflows.set(f, path.join(REPO_WORKFLOWS_DIR, f)));
+  }
+
+  return Array.from(workflows.entries()).map(([name, srcPath]) => ({ name, srcPath }));
+}
+
+/**
+ * Get list of available workflows from package + cached repo
+ */
+function getAvailableWorkflows() {
+  return getAllWorkflowFiles().map((wf) => wf.name.replace(".md", ""));
 }
 
 /**
@@ -137,20 +155,13 @@ function getAvailableWorkflows() {
  */
 function copyWorkflowsAsSkills(skillsPath, force = false) {
   const results = [];
+  const workflowFiles = getAllWorkflowFiles();
 
-  if (!fs.existsSync(REPO_WORKFLOWS_DIR)) {
-    return results;
-  }
-
-  const workflowFiles = fs.readdirSync(REPO_WORKFLOWS_DIR).filter((f) => f.endsWith(".md"));
-
-  for (const wfFile of workflowFiles) {
+  for (const { name: wfFile, srcPath } of workflowFiles) {
     const workflowName = wfFile.replace(".md", "");
-    const srcPath = path.join(REPO_WORKFLOWS_DIR, wfFile);
     const destDir = path.join(skillsPath, workflowName);
     const destPath = path.join(destDir, "SKILL.md");
 
-    // Create skill directory
     if (!fs.existsSync(destDir)) {
       fs.mkdirSync(destDir, { recursive: true });
     }
@@ -210,7 +221,8 @@ function installToPlatform(platform, options = {}) {
   }
 
   // Handle workflows based on platform
-  if (fs.existsSync(REPO_WORKFLOWS_DIR)) {
+  const workflowFiles = getAllWorkflowFiles();
+  if (workflowFiles.length > 0) {
     // Claude Code: Copy workflows as skills (workflows → skills/<name>/SKILL.md)
     if (platform.name === "claude" && skillsPath) {
       const workflowResults = copyWorkflowsAsSkills(skillsPath, force);
@@ -218,10 +230,7 @@ function installToPlatform(platform, options = {}) {
     }
     // Other platforms (Antigravity): Copy workflows to workflows directory
     else if (workflowsPath) {
-      const workflowFiles = fs.readdirSync(REPO_WORKFLOWS_DIR).filter((f) => f.endsWith(".md"));
-
-      for (const wfFile of workflowFiles) {
-        const srcPath = path.join(REPO_WORKFLOWS_DIR, wfFile);
+      for (const { name: wfFile, srcPath } of workflowFiles) {
         const destPath = path.join(workflowsPath, wfFile);
 
         if (fs.existsSync(destPath) && !force) {
@@ -383,4 +392,5 @@ module.exports = {
   REPO_SKILLS_DIR,
   REPO_WORKFLOWS_DIR,
   PACKAGE_SKILLS_DIR,
+  PACKAGE_WORKFLOWS_DIR,
 };

@@ -53,6 +53,9 @@ agentools update
 | `config import [file]` | Import configuration |
 | `config reset --yes` | Reset to defaults |
 | `secrets sync` | Sync MCP secrets from Bitwarden vault |
+| `rules list` | List available local rule templates |
+| `rules add <name>` | Install a local rule to current project |
+| `rules status` | Show rules installed in current project |
 | `sync-external` | Alias for `update` |
 | `list-external` | List available external skills |
 | `version` | Show version |
@@ -69,7 +72,7 @@ agentools update
 | **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
 | GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
 
-**New in v2.9.0:** Global Rules Sync support for all major platforms!
+**New in v2.10.0:** Local Rules — select and install project-level rule templates via `agentools rules` CLI.
 
 ## Secret Management
 
@@ -102,6 +105,27 @@ Manage AI behavior rules centrally and sync them across all your local AI platfo
 - **Folder-based (Claude, Cursor):** Copies each `.md` file individually to the platform's rules directory.
 - **File-based (Windsurf, Antigravity, Codex):** Merges all global rules into a single file, adding a managed header and clear separators.
 - **Smart sync:** Only writes when content has changed — skips identical files to avoid unnecessary I/O.
+
+## Local Rules (Project-level)
+
+Select and install project-specific rule templates to guide AI behavior in individual projects.
+
+**Usage:**
+```bash
+# List available rule templates
+agentools rules list
+
+# Install a rule to current project
+agentools rules add react-nextjs-patterns
+
+# Check what's installed
+agentools rules status
+```
+
+**How it works:**
+- Rule templates live in `.agents/rules/local/` in your sync-repo (with YAML frontmatter for metadata).
+- `rules add` strips frontmatter and installs to both `.claude/rules/` (Claude Code) and `.agents/rules/` (Antigravity).
+- A bundled workflow (`/select-local-rules`) can auto-detect your project stack and suggest relevant rules.
 
 ## Configuration
 

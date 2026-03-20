@@ -147,16 +147,19 @@ describe("Installer Module", () => {
   });
 
   describe("getAvailableWorkflows", () => {
-    it("should return empty without cache", () => {
-      assert.deepStrictEqual(installer.getAvailableWorkflows(), []);
+    it("should include package-bundled workflows without cache", () => {
+      const wf = installer.getAvailableWorkflows();
+      // Package-bundled workflows are always present even without repo cache
+      assert.ok(wf.includes("select-local-rules"));
     });
 
-    it("should return .md workflow names", () => {
+    it("should merge repo cache workflows with package-bundled ones", () => {
       fs.mkdirSync(installer.REPO_WORKFLOWS_DIR, { recursive: true });
       fs.writeFileSync(path.join(installer.REPO_WORKFLOWS_DIR, "wf1.md"), "# W");
       fs.writeFileSync(path.join(installer.REPO_WORKFLOWS_DIR, "skip.txt"), "skip");
       const wf = installer.getAvailableWorkflows();
       assert.ok(wf.includes("wf1"));
+      assert.ok(wf.includes("select-local-rules"));
       assert.ok(!wf.includes("skip"));
     });
   });

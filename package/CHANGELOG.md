@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-03-21
+
+### Added
+- 🎉 **Local Rules Selector** — project-level rule templates via `agentools rules` CLI
+- ✨ `agentools rules list` — list available local rule templates with descriptions and tags
+- ✨ `agentools rules add <name>` — install rules to `.claude/rules/` + `.agents/rules/` (strips YAML frontmatter)
+- ✨ `agentools rules status` — show installed project-level rules
+- 📋 5 built-in local rule templates: react-nextjs, nestjs-backend, postgres, testing, nodejs-performance
+- 🔄 Bundled workflow `/select-local-rules` — AI-driven rule selection based on project context
+- Package-bundled workflows support (`package/.agents/workflows/`) — always installed regardless of sync-repo
+
+### Changed
+- `installer.js`: Added `PACKAGE_WORKFLOWS_DIR` and `getAllWorkflowFiles()` to merge package + repo workflows
+- `rules-installer.js`: Added `getLocalRuleFiles()` and `REPO_LOCAL_RULES_DIR` for local rule discovery
+- `cli.js`: Enhanced `list` command to show local rules count; added `rules` command routing
+- Updated test for `getAvailableWorkflows()` to account for package-bundled workflows
+
 ## [2.9.1] - 2026-03-20
 
 ### Changed
