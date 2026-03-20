@@ -123,7 +123,7 @@ describe("Rules Installer Module", () => {
       const platform = { rulesPath: dest };
       const content = rulesInstaller.MANAGED_HEADER + "test content";
 
-      const result = rulesInstaller.installRulesToFile(platform, content, false);
+      const result = rulesInstaller.installRulesToFile(platform, content);
       assert.strictEqual(result.installed, true);
       assert.strictEqual(fs.readFileSync(dest, "utf-8"), content);
     });
@@ -133,58 +133,47 @@ describe("Rules Installer Module", () => {
       const platform = { rulesPath: dest };
       const content = rulesInstaller.MANAGED_HEADER + "nested content";
 
-      const result = rulesInstaller.installRulesToFile(platform, content, false);
+      const result = rulesInstaller.installRulesToFile(platform, content);
       assert.strictEqual(result.installed, true);
       assert.ok(fs.existsSync(dest));
     });
 
-    it("should skip existing unmanaged file without force", () => {
+    it("should overwrite existing file with new content", () => {
       const dest = path.join(testHome, "user-rules.md");
       fs.writeFileSync(dest, "My custom rules");
       const platform = { rulesPath: dest };
+      const newContent = rulesInstaller.MANAGED_HEADER + "new content";
 
-      const result = rulesInstaller.installRulesToFile(platform, "new content", false);
-      assert.strictEqual(result.installed, false);
-      assert.ok(result.reason.includes("not managed"));
-      assert.strictEqual(fs.readFileSync(dest, "utf-8"), "My custom rules");
-    });
-
-    it("should overwrite unmanaged file with force=true", () => {
-      const dest = path.join(testHome, "force-overwrite.md");
-      fs.writeFileSync(dest, "user content");
-      const platform = { rulesPath: dest };
-      const newContent = rulesInstaller.MANAGED_HEADER + "forced content";
-
-      const result = rulesInstaller.installRulesToFile(platform, newContent, true);
+      const result = rulesInstaller.installRulesToFile(platform, newContent);
       assert.strictEqual(result.installed, true);
       assert.strictEqual(fs.readFileSync(dest, "utf-8"), newContent);
     });
 
-    it("should overwrite managed file even without force", () => {
+    it("should overwrite managed file with updated content", () => {
       const dest = path.join(testHome, "managed-update.md");
       fs.writeFileSync(dest, rulesInstaller.MANAGED_HEADER + "old content");
       const platform = { rulesPath: dest };
       const newContent = rulesInstaller.MANAGED_HEADER + "new content";
 
-      const result = rulesInstaller.installRulesToFile(platform, newContent, false);
+      const result = rulesInstaller.installRulesToFile(platform, newContent);
       assert.strictEqual(result.installed, true);
       assert.strictEqual(fs.readFileSync(dest, "utf-8"), newContent);
     });
 
-    it("should skip write when managed file content is identical", () => {
+    it("should skip write when content is identical", () => {
       const dest = path.join(testHome, "identical.md");
       const content = rulesInstaller.MANAGED_HEADER + "same content";
       fs.writeFileSync(dest, content);
       const platform = { rulesPath: dest };
 
-      const result = rulesInstaller.installRulesToFile(platform, content, false);
+      const result = rulesInstaller.installRulesToFile(platform, content);
       assert.strictEqual(result.installed, true);
       assert.ok(result.reason && result.reason.includes("up to date"));
     });
 
     it("should return installed:false when rulesPath is null", () => {
       const platform = { rulesPath: null };
-      const result = rulesInstaller.installRulesToFile(platform, "content", false);
+      const result = rulesInstaller.installRulesToFile(platform, "content");
       assert.strictEqual(result.installed, false);
       assert.ok(result.reason.includes("No rulesPath"));
     });
@@ -198,7 +187,7 @@ describe("Rules Installer Module", () => {
       const platform = { rulesPath: destFolder };
       const files = [path.join(testRulesDir, "alpha.md")];
 
-      rulesInstaller.installRulesToFolder(platform, files, false);
+      rulesInstaller.installRulesToFolder(platform, files);
       assert.ok(fs.existsSync(destFolder), "Should create destination folder");
     });
 
@@ -210,7 +199,7 @@ describe("Rules Installer Module", () => {
         path.join(testRulesDir, "beta.md"),
       ];
 
-      const result = rulesInstaller.installRulesToFolder(platform, files, false);
+      const result = rulesInstaller.installRulesToFolder(platform, files);
       assert.strictEqual(result.installed, true);
       assert.strictEqual(result.count, 2);
       assert.strictEqual(result.skipped, 0);
@@ -230,7 +219,7 @@ describe("Rules Installer Module", () => {
       const platform = { rulesPath: destFolder };
       const files = [path.join(testRulesDir, "alpha.md")];
 
-      const result = rulesInstaller.installRulesToFolder(platform, files, false);
+      const result = rulesInstaller.installRulesToFolder(platform, files);
       assert.strictEqual(result.installed, false);
       assert.strictEqual(result.skipped, 1);
       assert.strictEqual(result.count, 0);
@@ -244,7 +233,7 @@ describe("Rules Installer Module", () => {
       const platform = { rulesPath: destFolder };
       const files = [path.join(testRulesDir, "alpha.md")];
 
-      const result = rulesInstaller.installRulesToFolder(platform, files, false);
+      const result = rulesInstaller.installRulesToFolder(platform, files);
       assert.strictEqual(result.installed, true);
       assert.strictEqual(result.count, 1);
       assert.strictEqual(
@@ -255,7 +244,7 @@ describe("Rules Installer Module", () => {
 
     it("should return installed:false and count:0 when rulesPath is null", () => {
       const platform = { rulesPath: null };
-      const result = rulesInstaller.installRulesToFolder(platform, [], false);
+      const result = rulesInstaller.installRulesToFolder(platform, []);
       assert.strictEqual(result.installed, false);
       assert.strictEqual(result.count, 0);
     });

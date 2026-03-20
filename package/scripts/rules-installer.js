@@ -52,15 +52,14 @@ function mergeRuleFiles(files) {
 
 /**
  * Install rules for a platform that uses a single file (file-type).
- * Only overwrites if the file was previously created by agentools (has MANAGED_HEADER).
- * User-created files are preserved unless force=true.
+ * Always overwrites the file since agentools update is an intentional action.
+ * Skips write only when content is identical to avoid unnecessary I/O.
  *
  * @param {Object} platform - Platform object with rulesPath
  * @param {string} mergedContent - Merged content to write
- * @param {boolean} force - Force overwrite even if file is not managed
  * @returns {{installed: boolean, reason?: string}}
  */
-function installRulesToFile(platform, mergedContent, force) {
+function installRulesToFile(platform, mergedContent) {
   const rulesPath = platform.rulesPath;
   if (!rulesPath) return { installed: false, reason: "No rulesPath" };
 
@@ -70,13 +69,9 @@ function installRulesToFile(platform, mergedContent, force) {
     fs.mkdirSync(parentDir, { recursive: true });
   }
 
-  // Check if file already exists and is NOT managed by agentools
-  if (fs.existsSync(rulesPath) && !force) {
+  // Skip write when content is identical
+  if (fs.existsSync(rulesPath)) {
     const existing = fs.readFileSync(rulesPath, "utf-8");
-    if (!existing.startsWith(MANAGED_HEADER)) {
-      return { installed: false, reason: "File exists and not managed by agentools (use --force)" };
-    }
-    // If managed and content is identical, skip unnecessary write
     if (existing === mergedContent) {
       return { installed: true, reason: "Already up to date" };
     }
@@ -93,10 +88,9 @@ function installRulesToFile(platform, mergedContent, force) {
  *
  * @param {Object} platform - Platform object with rulesPath
  * @param {string[]} ruleFiles - Array of source rule file paths
- * @param {boolean} _force - Reserved for future use (currently always updates changed files)
  * @returns {{installed: boolean, count: number, skipped: number}}
  */
-function installRulesToFolder(platform, ruleFiles, _force) {
+function installRulesToFolder(platform, ruleFiles) {
   const rulesDir = platform.rulesPath;
   if (!rulesDir) return { installed: false, count: 0, skipped: 0 };
 
@@ -132,12 +126,11 @@ function installRulesToFolder(platform, ruleFiles, _force) {
  * Install global rules to all detected platforms.
  *
  * @param {Object} [options]
- * @param {boolean} [options.force=false] - Force overwrite user files on file-type platforms
  * @param {string} [options.rulesDir=null] - Override rules source directory (for testing)
  * @returns {{rulesCount: number, platformsCount: number, details: Array}}
  */
 function installRules(options = {}) {
-  const { force = false, rulesDir = null } = options;
+  const { rulesDir = null } = options;
 
   const ruleFiles = getGlobalRuleFiles(rulesDir);
   if (ruleFiles.length === 0) {
@@ -156,9 +149,9 @@ function installRules(options = {}) {
 
     let result;
     if (platformObj.rulesType === "folder") {
-      result = installRulesToFolder(platformObj, ruleFiles, force);
+      result = installRulesToFolder(platformObj, ruleFiles);
     } else {
-      result = installRulesToFile(platformObj, mergedContent, force);
+      result = installRulesToFile(platformObj, mergedContent);
     }
 
     details.push({

@@ -292,9 +292,7 @@ function install(options = {}) {
 
   // Install global rules
   console.log("📋 Installing global rules...");
-  // Note: For now, we use the default rules directory from cache
-  // In dev/test, we might override this
-  const rulesResult = rulesInstaller.installRules({ force });
+  const rulesResult = rulesInstaller.installRules();
 
   return {
     skillsCount: totalSkills,

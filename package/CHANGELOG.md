@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-03-20
+
+### Changed
+- Removed `--force` flag requirement for global rules sync — rules are always updated when content changes
+- Simplified `rules-installer` API: `installRulesToFile` and `installRulesToFolder` no longer accept `force` parameter
+- Smart sync: skips writes when content is identical to avoid unnecessary I/O
+
 ## [2.9.0] - 2026-03-20
 
 ### Added

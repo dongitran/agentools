@@ -101,7 +101,7 @@ Manage AI behavior rules centrally and sync them across all your local AI platfo
 **How it works:**
 - **Folder-based (Claude, Cursor):** Copies each `.md` file individually to the platform's rules directory.
 - **File-based (Windsurf, Antigravity, Codex):** Merges all global rules into a single file, adding a managed header and clear separators.
-- **Safety:** Will not overwrite existing rule files unless the `--force` flag is used.
+- **Smart sync:** Only writes when content has changed — skips identical files to avoid unnecessary I/O.
 
 ## Configuration
 
