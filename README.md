@@ -93,7 +93,7 @@ Securely sync MCP secrets from Bitwarden vault to your shell profile. See [Bitwa
 | **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
 | GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
 
-**New in v2.9.0:** Global Rules Sync support for all major platforms!
+**New in v2.9.1:** Smart sync for Global Rules — always up to date without needing `--force`.
 
 ## File Locations
 

@@ -2,7 +2,7 @@
 
 > CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity, Cursor, Windsurf, Codex CLI)
 
-**Version:** 2.9.0
+**Version:** 2.9.1
 **NPM:** https://www.npmjs.com/package/agentools
 **Repository:** https://github.com/dongitran/agentools
 
@@ -30,7 +30,7 @@ agentools/
 │   ├── test/                   # Tests (node --test)
 │   ├── config/
 │   │   └── official-sources.json  # Empty (zero defaults)
-│   └── package.json            # v2.8.0
+│   └── package.json            # v2.9.1
 ├── .agents/
 │   ├── skills/                 # 15 bundled skills (synced from external sources)
 │   ├── workflows/              # 5 workflows (brainstorm, create-pr, release-notes, sync-bitwarden-to-github, update-skills)
