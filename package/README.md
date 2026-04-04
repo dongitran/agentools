@@ -1,40 +1,69 @@
-# agentools
+<div align="center">
 
-> Universal skill, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync
+# 🤖 agentools
 
-[![npm version](https://badge.fury.io/js/agentools.svg)](https://www.npmjs.com/package/agentools)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**Universal skill, workflow & rules manager for AI coding assistants — with bi-directional GitHub sync.**
 
-## Install
+[![npm version](https://img.shields.io/npm/v/agentools?style=flat-square&color=0ea5e9&label=npm)](https://www.npmjs.com/package/agentools)
+[![npm downloads](https://img.shields.io/npm/dm/agentools?style=flat-square&color=8b5cf6)](https://www.npmjs.com/package/agentools)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-f59e0b?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+
+<br/>
+
+> Stop managing AI skills manually across multiple tools.  
+> `agentools` syncs your skills, workflows, and rules from a single GitHub repo — across all your AI coding assistants.
+
+</div>
+
+---
+
+## ✨ Features
+
+- 🔄 **Bi-directional sync** — pull/push skills, workflows, and rules from your own GitHub repo
+- 🌐 **Multi-platform** — Claude Code, Antigravity, Cursor, Windsurf, Codex CLI, GitHub Copilot
+- 🔌 **External sources** — aggregate skills from any public GitHub repo
+- 🔐 **Secret management** — sync MCP secrets from Bitwarden vault to your shell environment
+- 📋 **Global rules** — manage AI behavior rules centrally, synced across all platforms
+- 📁 **Local rules** — install project-level rule templates per repository
+- ⚙️ **MCP auto-config** — auto-configures MCP servers (Bitwarden, etc.) on install
+
+---
+
+## 📦 Installation
 
 ```bash
 npm install -g agentools
 ```
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 ```bash
 # Initialize with your GitHub repo
 agentools init --repo https://github.com/youruser/my-ai-skills.git
 
-# Pull skills and auto-install to platforms
+# Pull skills and auto-install to all detected platforms
 agentools pull
 
-# Add external skill sources
+# Add an external skill source
 agentools source add https://github.com/vercel-labs/agent-skills.git \
   --name vercel-labs --path skills
 
-# Sync external skills (pull -> sync -> push)
+# Full sync: pull → sync external → push → install
 agentools update
 ```
 
-## Commands
+---
+
+## 🛠️ Commands
 
 | Command | Description |
 |---------|-------------|
 | `init --repo <url>` | Initialize config, clone repo, and install |
+| `pull` | Git pull from repo + auto-install to platforms |
 | `push [--message "msg"]` | Git push to your skills repo |
-| `pull` | Git pull from repo + auto-install |
 | `update` | Pull → sync external skills → push → install |
 | `list` | List installed skills |
 | `platforms` | Show detected platforms |
@@ -42,94 +71,115 @@ agentools update
 | `source add <url>` | Add custom skill source |
 | `source remove <name>` | Remove skill source |
 | `source list` | List all sources |
-| `source enable <name>` | Enable a source |
-| `source disable <name>` | Disable a source |
+| `source enable/disable <name>` | Toggle a source |
 | `source info <name>` | View source details |
-| `config get <key>` | Get config value |
-| `config set <key> <value>` | Set config value |
-| `config edit` | Open config in $EDITOR |
+| `config get/set <key>` | Get or set a config value |
+| `config edit` | Open config in `$EDITOR` |
 | `config validate` | Validate configuration |
-| `config export [file]` | Export configuration |
-| `config import [file]` | Import configuration |
+| `config export/import [file]` | Export or import configuration |
 | `config reset --yes` | Reset to defaults |
 | `secrets sync` | Sync MCP secrets from Bitwarden vault |
 | `rules list` | List available local rule templates |
 | `rules add <name>` | Install a local rule to current project |
 | `rules status` | Show rules installed in current project |
-| `sync-external` | Alias for `update` |
-| `list-external` | List available external skills |
 | `version` | Show version |
 | `help` | Show help |
 
-## Supported Platforms
+---
 
-| Platform | Skills Path | MCP Support | Global Rules | Format |
-|----------|-------------|-------------|--------------|--------|
-| Claude Code | `~/.claude/skills/` | ✅ `~/.claude.json` | ✅ `~/.claude/rules/` | Folder |
-| Antigravity IDE | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | ✅ `~/.gemini/GEMINI.md` | Single file |
-| **Cursor** | `~/.cursor/skills/` | ✅ **`~/.cursor/mcp.json`** | ✅ `~/.cursor/rules/` | Folder |
-| **Windsurf** | `~/.windsurf/skills/` | ✅ **`~/.codeium/windsurf/mcp_config.json`** | ✅ `global_rules.md` | Single file |
-| **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
-| GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
+## 🖥️ Supported Platforms
 
-**New in v2.10.0:** Local Rules — select and install project-level rule templates via `agentools rules` CLI.
+| Platform | Skills Path | MCP Support | Global Rules |
+|----------|-------------|-------------|--------------|
+| **Claude Code** | `~/.claude/skills/` | ✅ `~/.claude.json` | ✅ `~/.claude/rules/` |
+| **Antigravity IDE** | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | ✅ `~/.gemini/GEMINI.md` |
+| **Cursor** | `~/.cursor/skills/` | ✅ `~/.cursor/mcp.json` | ✅ `~/.cursor/rules/` |
+| **Windsurf** | `~/.windsurf/skills/` | ✅ `mcp_config.json` | ✅ `global_rules.md` |
+| **Codex CLI** | `~/.codex/skills/` | ✅ `~/.codex/config.toml` | ✅ `~/.codex/AGENTS.md` |
+| **GitHub Copilot** | `~/.github/copilot-instructions.md` | ❌ | ❌ |
 
-## Secret Management
+---
 
-Securely sync MCP secrets from Bitwarden vault to your shell profile:
+## ⚙️ How It Works
+
+```
+agentools pull / update
+   ↓
+GitHub repo  →  clone/pull  →  ~/.agentools/sync-repo/
+   ↓
+External sources (aggregated automatically)
+   ↓
+Install  →  Claude Code / Cursor / Windsurf / Antigravity / Codex
+            Skills + Workflows + Global Rules + MCP config
+```
+
+**Skill structure in your repo:**
+```
+my-ai-skills/
+├── .agents/
+│   ├── skills/          # Your custom skills (SKILL.md per folder)
+│   ├── workflows/       # Workflow markdown files
+│   └── rules/
+│       ├── global/      # Synced to all platforms automatically
+│       └── local/       # Project-level templates (installed via `rules add`)
+```
+
+---
+
+## 🔐 Secret Management
+
+Securely sync MCP secrets from your Bitwarden vault to your shell environment:
 
 ```bash
 agentools secrets sync
 ```
 
 **How it works:**
-- Discovers required secrets from MCP config files (e.g., `${GITHUB_TOKEN}`)
-- Fetches secrets from Bitwarden vault folder "MCP Secrets"
-- Writes to `~/.zshrc` for persistence across sessions
-- Never stores Bitwarden master password
+- Scans MCP config files for placeholder variables (e.g., `${GITHUB_TOKEN}`)
+- Fetches matching secrets from the Bitwarden vault folder **"MCP Secrets"**
+- Writes exports to `~/.zshrc` for persistence across sessions
+- Never stores your Bitwarden master password
 
-**Setup:** See [Bitwarden MCP Setup Guide](./mcp-servers/bitwarden/README.md)
+---
 
-**Auto-configuration:** Package automatically configures Bitwarden MCP server in Antigravity on install
+## 📋 Global Rules
 
-## Global Rules Sync
-
-Manage AI behavior rules centrally and sync them across all your local AI platforms.
+Manage AI behavior rules centrally and sync them across all platforms automatically.
 
 **Setup:**
-1. Create a directory `.agents/rules/global/` in your sync-repo.
-2. Add your `.md` rule files there (e.g., `coding-standards.md`, `project-context.md`).
-3. Run `agentools update` or `agentools install`.
+1. Create `.agents/rules/global/` in your sync-repo
+2. Add `.md` rule files (e.g., `coding-standards.md`, `security.md`)
+3. Run `agentools update` — rules are pushed to every platform
 
-**How it works:**
-- **Folder-based (Claude, Cursor):** Copies each `.md` file individually to the platform's rules directory.
-- **File-based (Windsurf, Antigravity, Codex):** Merges all global rules into a single file, adding a managed header and clear separators.
-- **Smart sync:** Only writes when content has changed — skips identical files to avoid unnecessary I/O.
+**Platform behavior:**
+- **Folder-based** (Claude Code, Cursor): copies each `.md` individually
+- **File-based** (Windsurf, Antigravity, Codex): merges all rules into one managed file with clear separators
+- **Smart sync**: skips unchanged files to avoid unnecessary I/O
 
-## Local Rules (Project-level)
+---
 
-Select and install project-specific rule templates to guide AI behavior in individual projects.
+## 📁 Local Rules (Project-level)
 
-**Usage:**
+Install project-specific rule templates to guide AI behavior per repository:
+
 ```bash
-# List available rule templates
+# See available templates
 agentools rules list
 
-# Install a rule to current project
+# Install a template into the current project
 agentools rules add react-nextjs-patterns
 
 # Check what's installed
 agentools rules status
 ```
 
-**How it works:**
-- Rule templates live in `.agents/rules/local/` in your sync-repo (with YAML frontmatter for metadata).
-- `rules add` strips frontmatter and installs to both `.claude/rules/` (Claude Code) and `.agents/rules/` (Antigravity).
-- A bundled workflow (`/select-local-rules`) can auto-detect your project stack and suggest relevant rules.
+Templates live in `.agents/rules/local/` in your sync-repo with YAML frontmatter metadata. The bundled `/select-local-rules` workflow can auto-detect your project stack and suggest relevant templates.
 
-## Configuration
+---
 
-User config at `~/.agentools/config.json`:
+## ⚙️ Configuration
+
+Config file at `~/.agentools/config.json`:
 
 ```json
 {
@@ -146,10 +196,25 @@ User config at `~/.agentools/config.json`:
       "enabled": true
     }
   ],
-  "lastSync": "2026-02-13T12:00:00.000Z"
+  "lastSync": "2026-01-01T00:00:00.000Z"
 }
 ```
 
-## License
+---
 
-MIT
+## 🧪 Development
+
+```bash
+git clone https://github.com/dongitran/agentools
+cd agentools/package
+npm install
+
+npm test              # run unit tests
+npm run test:coverage # tests with coverage report
+```
+
+---
+
+## 📄 License
+
+MIT © [dongitran](https://github.com/dongitran)
