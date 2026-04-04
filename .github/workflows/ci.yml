@@ -65,6 +65,9 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Upgrade npm for Trusted Publisher
+        run: npm install -g npm@latest
+
       - name: Check file structure
         run: |
           echo "Checking package structure..."
@@ -88,6 +91,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
+
+      - name: Upgrade npm for Trusted Publisher
+        run: npm install -g npm@latest
 
       - name: Create tarball
         run: |
