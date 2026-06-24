@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "inquirer": "^13.3.2"
+    "inquirer": "^14.0.2"
   },
   "files": [
     "bin/",
