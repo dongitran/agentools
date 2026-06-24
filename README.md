@@ -5,7 +5,7 @@
 [![npm version](https://badge.fury.io/js/agentools.svg)](https://www.npmjs.com/package/agentools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-One command to manage AI coding skills across Claude Code, Antigravity, Cursor, Windsurf, Codex CLI, and more.
+One command to manage AI coding skills across Claude Code, Antigravity IDE, Antigravity CLI, Cursor, Windsurf, Codex CLI, and more.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ agentools source add https://github.com/vercel-labs/agent-skills.git \
 agentools source add https://github.com/affaan-m/everything-claude-code.git \
   --name everything-claude-code --path skills
 
-# Sync and auto-install to IDEs
+# Sync and auto-install to detected AI coding tools
 agentools update
 ```
 
@@ -95,12 +95,15 @@ Securely sync MCP secrets from Bitwarden vault to your shell profile. See [Bitwa
 |----------|-------------|-------------|--------------|--------|
 | Claude Code | `~/.claude/skills/` | ✅ `~/.claude.json` | ✅ `~/.claude/rules/` | Folder |
 | Antigravity IDE | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | ✅ `~/.gemini/GEMINI.md` | Single file |
+| Antigravity CLI | `~/.gemini/antigravity-cli/skills/` | ✅ `~/.gemini/antigravity-cli/mcp_config.json` | ✅ `~/.gemini/GEMINI.md` | Single file |
 | **Cursor** | `~/.cursor/skills/` | ✅ **`~/.cursor/mcp.json`** | ✅ `~/.cursor/rules/` | Folder |
 | **Windsurf** | `~/.windsurf/skills/` | ✅ **`~/.codeium/windsurf/mcp_config.json`** | ✅ `global_rules.md` | Single file |
 | **Codex CLI** | `~/.codex/skills/` | ✅ **`~/.codex/config.toml`** | ✅ `~/.codex/AGENTS.md` | Single file |
 | GitHub Copilot | `~/.github/copilot-instructions.md` | ❌ | ❌ | - |
 
-**New in v2.10.0:** Local Rules — select and install project-level rule templates via CLI or AI workflow.
+Antigravity CLI workflows are installed as slash-command skills under `~/.gemini/antigravity-cli/skills/<workflow>/SKILL.md`. On Windows, the global skills path is `%USERPROFILE%\.gemini\antigravity-cli\skills\`; the CLI binary is detected at its official `%LOCALAPPDATA%\agy\bin\agy.exe` location.
+
+**New in v2.11.0:** First-class Antigravity CLI support for skills, workflows, MCP servers, and global rules on macOS, Linux, and Windows.
 
 ## File Locations
 

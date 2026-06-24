@@ -1,6 +1,6 @@
 ---
 name: agentools
-description: Manage AI coding skills across platforms (Claude Code, Antigravity, Cursor, Windsurf) using agentools CLI. Use when the user wants to sync skills to/from GitHub, install to multiple platforms, add custom skill sources, or configure skill management settings.
+description: Manage AI coding skills across platforms (Claude Code, Antigravity IDE/CLI, Cursor, Windsurf, Codex) using agentools CLI. Use when the user wants to sync skills to/from GitHub, install to multiple platforms, add custom skill sources, or configure skill management settings.
 ---
 
 # AI Agent Config Management
@@ -145,7 +145,8 @@ agentools pull
 
 ### Platform Paths
 - Claude Code: `~/.claude/skills/`
-- Antigravity: `~/.gemini/antigravity/skills/`
+- Antigravity IDE: `~/.gemini/antigravity/skills/`
+- Antigravity CLI: `~/.gemini/antigravity-cli/skills/`
 - Cursor: `~/.cursor/skills/`
 - Windsurf: `~/.windsurf/skills/`
 - Codex: `~/.codex/skills/`

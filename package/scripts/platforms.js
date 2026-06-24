@@ -19,6 +19,7 @@ const SUPPORTED = [
     configDir: ".claude",
     skillsDir: "skills",
     workflowsDir: "workflows",
+    workflowsAsSkills: true,
     commandsDir: "commands",
     rulesDir: "rules",
     rulesType: "folder",
@@ -72,12 +73,53 @@ const SUPPORTED = [
       return path.join(HOME, this.configDir, this.mcpConfigFile);
     },
     detect() {
-      // Check for .gemini directory or Antigravity app
       return (
-        fs.existsSync(path.join(HOME, ".gemini")) ||
+        fs.existsSync(this.configPath) ||
         fs.existsSync("/Applications/Antigravity.app") ||
         fs.existsSync(path.join(HOME, "Applications", "Antigravity.app"))
       );
+    },
+  },
+  {
+    name: "antigravity-cli",
+    displayName: "Antigravity CLI",
+    configDir: ".gemini/antigravity-cli",
+    skillsDir: "skills",
+    workflowsAsSkills: true,
+    mcpConfigFile: "mcp_config.json",
+    rulesFile: "GEMINI.md",
+    rulesType: "file",
+    get configPath() {
+      return path.join(HOME, this.configDir);
+    },
+    get skillsPath() {
+      return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    get rulesPath() {
+      return path.join(HOME, ".gemini", this.rulesFile);
+    },
+    get mcpConfigPath() {
+      return path.join(HOME, this.configDir, this.mcpConfigFile);
+    },
+    get executablePath() {
+      if (process.platform !== "win32") {
+        return path.join(HOME, ".local", "bin", "agy");
+      }
+
+      const localAppData = process.env.LOCALAPPDATA || path.join(HOME, "AppData", "Local");
+      return path.join(localAppData, "agy", "bin", "agy.exe");
+    },
+    detect() {
+      if (fs.existsSync(this.configPath) || fs.existsSync(this.executablePath)) {
+        return true;
+      }
+
+      const executableName = process.platform === "win32" ? "agy.exe" : "agy";
+      const searchPath = process.env.PATH || process.env.Path || "";
+      return searchPath
+        .split(path.delimiter)
+        .filter(Boolean)
+        .some((directory) => fs.existsSync(path.join(directory, executableName)));
     },
   },
   {

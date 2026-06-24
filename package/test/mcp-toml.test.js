@@ -27,6 +27,11 @@ describe("MCP TOML Support", () => {
       assert.strictEqual(format, "json");
     });
 
+    it("should return json for Antigravity CLI", () => {
+      const format = mcpInstaller.getConfigFormat("antigravity-cli");
+      assert.strictEqual(format, "json");
+    });
+
     it("should return json for Cursor", () => {
       const format = mcpInstaller.getConfigFormat("cursor");
       assert.strictEqual(format, "json");

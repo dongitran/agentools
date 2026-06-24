@@ -17,7 +17,7 @@ describe("Platforms Module", () => {
   describe("SUPPORTED platforms", () => {
     it("should have all required platforms", () => {
       const names = platforms.SUPPORTED.map(p => p.name);
-      ["claude", "antigravity", "cursor", "windsurf", "codex", "copilot"].forEach(n => {
+      ["claude", "antigravity", "antigravity-cli", "cursor", "windsurf", "codex", "copilot"].forEach(n => {
         assert.ok(names.includes(n), `Should include ${n}`);
       });
     });
@@ -94,10 +94,22 @@ describe("Platforms Module", () => {
       const ag = platforms.getByName("antigravity");
       assert.ok(ag.mcpConfigPath.includes("mcp_config.json"));
     });
-    it("should detect based on .gemini dir", () => {
+    it("should detect based on Antigravity IDE config dir", () => {
       const ag = platforms.getByName("antigravity");
-      fs.mkdirSync(path.join(env.tmpDir, ".gemini"), { recursive: true });
+      fs.mkdirSync(ag.configPath, { recursive: true });
       assert.strictEqual(ag.detect(), true);
+    });
+    it("should not infer the IDE from a shared .gemini dir", () => {
+      const ag = platforms.getByName("antigravity");
+      const geminiDir = path.join(env.tmpDir, ".gemini");
+      const originalExistsSync = fs.existsSync;
+
+      fs.existsSync = (candidate) => candidate === geminiDir;
+      try {
+        assert.strictEqual(ag.detect(), false);
+      } finally {
+        fs.existsSync = originalExistsSync;
+      }
     });
     it("should detect Antigravity ONLY via ~/Applications path (line 63)", () => {
       // Critical: Delete .gemini and /Applications/Antigravity.app to avoid short-circuit
@@ -123,6 +135,71 @@ describe("Platforms Module", () => {
     it("should have rulesPath pointing to ~/.gemini/GEMINI.md", () => {
       const ag = platforms.getByName("antigravity");
       assert.ok(ag.rulesPath.endsWith(path.join(".gemini", "GEMINI.md")));
+    });
+  });
+
+  describe("Antigravity CLI platform", () => {
+    it("should use the documented global paths", () => {
+      const cli = platforms.getByName("antigravity-cli");
+
+      assert.ok(cli.configPath.endsWith(path.join(".gemini", "antigravity-cli")));
+      assert.ok(cli.skillsPath.endsWith(path.join(".gemini", "antigravity-cli", "skills")));
+      assert.ok(cli.mcpConfigPath.endsWith(path.join(".gemini", "antigravity-cli", "mcp_config.json")));
+      assert.ok(cli.rulesPath.endsWith(path.join(".gemini", "GEMINI.md")));
+    });
+
+    it("should install workflows as skills", () => {
+      const cli = platforms.getByName("antigravity-cli");
+      assert.strictEqual(cli.workflowsAsSkills, true);
+      assert.strictEqual(cli.workflowsPath, undefined);
+    });
+
+    it("should detect an initialized CLI config directory", () => {
+      const cli = platforms.getByName("antigravity-cli");
+      fs.mkdirSync(cli.configPath, { recursive: true });
+      assert.strictEqual(cli.detect(), true);
+    });
+
+    it("should detect the official default binary location", () => {
+      const cli = platforms.getByName("antigravity-cli");
+      if (fs.existsSync(cli.configPath)) {
+        fs.rmSync(cli.configPath, { recursive: true, force: true });
+      }
+      fs.mkdirSync(path.dirname(cli.executablePath), { recursive: true });
+      fs.writeFileSync(cli.executablePath, "");
+      assert.strictEqual(cli.detect(), true);
+    });
+
+    it("should expose the platform-specific default executable path", () => {
+      const cli = platforms.getByName("antigravity-cli");
+      const expectedSuffix = process.platform === "win32"
+        ? path.join("agy", "bin", "agy.exe")
+        : path.join(".local", "bin", "agy");
+
+      assert.ok(cli.executablePath.endsWith(expectedSuffix));
+    });
+
+    it("should detect a custom install available on PATH", () => {
+      const cli = platforms.getByName("antigravity-cli");
+      const customBinDir = createTempDir();
+      const executableName = process.platform === "win32" ? "agy.exe" : "agy";
+      const originalPath = process.env.PATH;
+
+      if (fs.existsSync(cli.configPath)) {
+        fs.rmSync(cli.configPath, { recursive: true, force: true });
+      }
+      if (fs.existsSync(cli.executablePath)) {
+        fs.rmSync(cli.executablePath, { force: true });
+      }
+      fs.writeFileSync(path.join(customBinDir, executableName), "");
+      process.env.PATH = customBinDir;
+
+      try {
+        assert.strictEqual(cli.detect(), true);
+      } finally {
+        process.env.PATH = originalPath;
+        fs.rmSync(customBinDir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -237,7 +314,8 @@ describe("Platforms Module", () => {
       assert.ok(Array.isArray(names));
       assert.ok(names.includes("claude"));
       assert.ok(names.includes("antigravity"));
-      assert.ok(names.length >= 6);
+      assert.ok(names.includes("antigravity-cli"));
+      assert.ok(names.length >= 7);
     });
   });
 

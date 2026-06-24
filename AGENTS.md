@@ -1,8 +1,8 @@
 # AI Agent Config
 
-> CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity, Cursor, Windsurf, Codex CLI)
+> CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity IDE/CLI, Cursor, Windsurf, Codex CLI)
 
-**Version:** 2.10.0
+**Version:** 2.11.0
 **NPM:** https://www.npmjs.com/package/agentools
 **Repository:** https://github.com/dongitran/agentools
 
@@ -24,13 +24,13 @@ agentools/
 │   │   ├── rules-installer.js  # Global rules merge & install logic
 │   │   ├── mcp-installer.js    # MCP server discovery, validation, install
 │   │   ├── secret-manager.js   # Bitwarden secret sync for MCP env vars
-│   │   ├── platforms.js        # Platform detection (6 platforms)
+│   │   ├── platforms.js        # Platform detection (7 platforms)
 │   │   ├── migration.js        # v1 -> v2 migration
 │   │   └── postinstall.js      # Post-install guidance
 │   ├── test/                   # Tests (node --test)
 │   ├── config/
 │   │   └── official-sources.json  # Empty (zero defaults)
-│   └── package.json            # v2.10.0
+│   └── package.json            # v2.11.0
 ├── .agents/
 │   ├── skills/                 # 15 bundled skills (synced from external sources)
 │   ├── workflows/              # 5 workflows (brainstorm, create-pr, release-notes, sync-bitwarden-to-github, update-skills)
@@ -85,6 +85,7 @@ agentools/
 |----------|-------------|-------------|--------------|
 | Claude Code | `~/.claude/skills/` | `~/.claude.json` | `~/.claude/rules/` |
 | Antigravity IDE | `~/.gemini/antigravity/skills/` | `mcp_config.json` | `GEMINI.md` |
+| Antigravity CLI | `~/.gemini/antigravity-cli/skills/` | `~/.gemini/antigravity-cli/mcp_config.json` | `~/.gemini/GEMINI.md` |
 | Cursor | `~/.cursor/skills/` | `~/.cursor/mcp.json` | `~/.cursor/rules/` |
 | Windsurf | `~/.windsurf/skills/` | `mcp_config.json` | `global_rules.md` |
 | Codex CLI | `~/.codex/skills/` | `config.toml` | `AGENTS.md` |
@@ -213,5 +214,4 @@ The `update` command flow:
 2. Clone/update external source repos to cache
 3. Copy skills from cache to sync-repo
 4. Commit and push sync-repo
-5. Auto-install skills to IDE platforms
- 
+5. Auto-install skills to detected AI coding platforms

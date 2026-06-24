@@ -291,6 +291,26 @@ test("E2E: agentools platforms should list detected platforms", () => {
   }
 });
 
+test("E2E: agentools platforms should detect Antigravity CLI", () => {
+  const env = setupE2ETestEnv();
+
+  try {
+    const cliDir = path.join(env.home, ".gemini", "antigravity-cli");
+    fs.mkdirSync(cliDir, { recursive: true });
+
+    const result = env.runCLI(["platforms"]);
+
+    assert.strictEqual(result.exitCode, 0, "Should exit with code 0");
+    assert.ok(result.stdout.includes("Antigravity CLI"), "Should detect Antigravity CLI");
+    assert.ok(
+      result.stdout.includes(path.join(cliDir, "skills")),
+      "Should show Antigravity CLI skills path"
+    );
+  } finally {
+    env.cleanup();
+  }
+});
+
 test("E2E: agentools platforms with no platforms should show supported list", () => {
   const env = setupE2ETestEnv();
 

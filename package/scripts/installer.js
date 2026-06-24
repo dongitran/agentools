@@ -150,8 +150,7 @@ function getAvailableWorkflows() {
 }
 
 /**
- * Copy workflows as skills for Claude Code
- * Claude Code doesn't support workflows directory, so we convert them to skills
+ * Copy workflows as skills for platforms whose workflows are slash-command skills.
  */
 function copyWorkflowsAsSkills(skillsPath, force = false) {
   const results = [];
@@ -178,24 +177,11 @@ function copyWorkflowsAsSkills(skillsPath, force = false) {
 }
 
 /**
- * Install skills and workflows to a specific platform
+ * Install available skills to a platform skills directory.
  */
-function installToPlatform(platform, options = {}) {
+function installSkills(skillsPath, options = {}) {
   const { force = false, skill = null } = options;
-
-  const skillsPath = platforms.ensureSkillsDir(platform);
-  const workflowsPath = platforms.ensureWorkflowsDir(platform);
-
-  const results = {
-    platform: platform.name,
-    skillsPath: skillsPath,
-    workflowsPath: workflowsPath,
-    skills: [],
-    workflows: [],
-    mcpServers: null,
-  };
-
-  // Install skills
+  const results = [];
   let skillsToInstall = getAvailableSkills();
 
   if (skill) {
@@ -214,45 +200,76 @@ function installToPlatform(platform, options = {}) {
 
     const destPath = path.join(skillsPath, skillName);
     const copyResult = copyDir(srcPath, destPath, force);
-    results.skills.push({
+    results.push({
       name: skillName,
       ...copyResult,
     });
   }
 
-  // Handle workflows based on platform
-  const workflowFiles = getAllWorkflowFiles();
-  if (workflowFiles.length > 0) {
-    // Claude Code: Copy workflows as skills (workflows → skills/<name>/SKILL.md)
-    if (platform.name === "claude" && skillsPath) {
-      const workflowResults = copyWorkflowsAsSkills(skillsPath, force);
-      results.workflows = workflowResults;
-    }
-    // Other platforms (Antigravity): Copy workflows to workflows directory
-    else if (workflowsPath) {
-      for (const { name: wfFile, srcPath } of workflowFiles) {
-        const destPath = path.join(workflowsPath, wfFile);
+  return results;
+}
 
-        if (fs.existsSync(destPath) && !force) {
-          results.workflows.push({ name: wfFile.replace(".md", ""), skipped: 1, copied: 0 });
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-          results.workflows.push({ name: wfFile.replace(".md", ""), skipped: 0, copied: 1 });
-        }
-      }
+/**
+ * Install workflows using the platform's native or skill-based representation.
+ */
+function installWorkflows(platform, skillsPath, force = false) {
+  const workflowFiles = getAllWorkflowFiles();
+  const workflowsPath = platform.workflowsAsSkills
+    ? skillsPath
+    : platforms.ensureWorkflowsDir(platform);
+
+  if (workflowFiles.length === 0 || !workflowsPath) {
+    return { workflowsPath, workflows: [] };
+  }
+  if (platform.workflowsAsSkills) {
+    return {
+      workflowsPath,
+      workflows: copyWorkflowsAsSkills(skillsPath, force),
+    };
+  }
+
+  const workflows = [];
+  for (const { name: workflowFile, srcPath } of workflowFiles) {
+    const destPath = path.join(workflowsPath, workflowFile);
+    const name = workflowFile.replace(".md", "");
+
+    if (fs.existsSync(destPath) && !force) {
+      workflows.push({ name, skipped: 1, copied: 0 });
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+      workflows.push({ name, skipped: 0, copied: 1 });
     }
   }
 
-  // Install MCP servers to platforms with MCP support
+  return { workflowsPath, workflows };
+}
+
+/**
+ * Install skills and workflows to a specific platform.
+ */
+function installToPlatform(platform, options = {}) {
+  const { force = false } = options;
+  const skillsPath = platforms.ensureSkillsDir(platform);
+  const skills = installSkills(skillsPath, options);
+  const workflowResult = installWorkflows(platform, skillsPath, force);
+  let mcpServers = null;
+
   if (platform.mcpConfigPath) {
     try {
-      results.mcpServers = mcpInstaller.installMcpServers({ force, platform });
+      mcpServers = mcpInstaller.installMcpServers({ force, platform });
     } catch (error) {
       console.warn(`  ⚠️  MCP install failed: ${error.message}`);
     }
   }
 
-  return results;
+  return {
+    platform: platform.name,
+    skillsPath,
+    workflowsPath: workflowResult.workflowsPath,
+    skills,
+    workflows: workflowResult.workflows,
+    mcpServers,
+  };
 }
 
 /**
@@ -261,7 +278,6 @@ function installToPlatform(platform, options = {}) {
 function install(options = {}) {
   const { force = false, skill = null, sync = true } = options;
 
-  // Always sync repo to get latest
   if (sync) {
     console.log("\n📦 Syncing skills from repository...");
     if (!syncRepo()) {
@@ -269,13 +285,11 @@ function install(options = {}) {
     }
   }
 
-  // Check if we have any skills to install
   if (!isRepoCached() && !fs.existsSync(PACKAGE_SKILLS_DIR)) {
     console.log("⚠️  Skills repository not cached. Run 'agentools update' first.");
     return { skillsCount: 0, platformsCount: 0, workflowsCount: 0, details: [] };
   }
 
-  // Always install to all detected platforms
   const targetPlatforms = platforms.detectAll().map((p) => platforms.getByName(p.name));
 
   if (targetPlatforms.length === 0) {
@@ -299,7 +313,6 @@ function install(options = {}) {
     }
   }
 
-  // Install global rules
   console.log("📋 Installing global rules...");
   const rulesResult = rulesInstaller.installRules();
 
@@ -324,7 +337,9 @@ function uninstallFromPlatform(platform, skill = null) {
   }
 
   let removed = 0;
-  const ourSkills = getAvailableSkills();
+  const ourSkills = platform.workflowsAsSkills
+    ? [...new Set([...getAvailableSkills(), ...getAvailableWorkflows()])]
+    : getAvailableSkills();
 
   if (skill) {
     const skillPath = path.join(skillsPath, skill);

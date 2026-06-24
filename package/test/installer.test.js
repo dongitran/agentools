@@ -238,6 +238,48 @@ describe("Installer Module", () => {
       }
     });
 
+    it("should install skills and workflows to Antigravity CLI skills dir", () => {
+      const skillDir = path.join(installer.REPO_SKILLS_DIR, "agy-cli-skill");
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# CLI Skill");
+
+      fs.mkdirSync(installer.REPO_WORKFLOWS_DIR, { recursive: true });
+      fs.writeFileSync(path.join(installer.REPO_WORKFLOWS_DIR, "agy-cli-workflow.md"), "# CLI Workflow");
+
+      const platforms = require("../scripts/platforms");
+      const cli = platforms.getByName("antigravity-cli");
+      fs.mkdirSync(cli.configPath, { recursive: true });
+
+      mocks.execSync.mockImplementation(() => "");
+      const result = installer.install({ force: true, sync: false });
+      const detail = result.details.find((item) => item.platform === "antigravity-cli");
+
+      assert.ok(detail);
+      assert.strictEqual(detail.workflowsPath, cli.skillsPath);
+      assert.ok(fs.existsSync(path.join(cli.skillsPath, "agy-cli-skill", "SKILL.md")));
+      assert.ok(fs.existsSync(path.join(cli.skillsPath, "agy-cli-workflow", "SKILL.md")));
+    });
+
+    it("should preserve workflow precedence for matching skill names", () => {
+      const sharedName = "workflow-precedence";
+      const skillDir = path.join(installer.REPO_SKILLS_DIR, sharedName);
+      fs.mkdirSync(skillDir, { recursive: true });
+      fs.writeFileSync(path.join(skillDir, "SKILL.md"), "skill content");
+
+      fs.mkdirSync(installer.REPO_WORKFLOWS_DIR, { recursive: true });
+      fs.writeFileSync(path.join(installer.REPO_WORKFLOWS_DIR, `${sharedName}.md`), "workflow content");
+
+      const platforms = require("../scripts/platforms");
+      const claude = platforms.getByName("claude");
+      fs.mkdirSync(claude.configPath, { recursive: true });
+
+      mocks.execSync.mockImplementation(() => "");
+      installer.install({ force: true, sync: false });
+
+      const installed = path.join(claude.skillsPath, sharedName, "SKILL.md");
+      assert.strictEqual(fs.readFileSync(installed, "utf-8"), "workflow content");
+    });
+
     it("should filter by specific skill name", () => {
       const skillDir = path.join(installer.REPO_SKILLS_DIR, "target-skill");
       fs.mkdirSync(skillDir, { recursive: true });
@@ -324,6 +366,23 @@ describe("Installer Module", () => {
       // Codex skillsPath doesn't exist
       const r = installer.uninstall({ platform: "codex" });
       assert.strictEqual(r.details[0].removed, 0);
+    });
+
+    it("should remove converted workflows from Antigravity CLI", () => {
+      const workflowName = "agy-cli-removable-workflow";
+      fs.mkdirSync(installer.REPO_WORKFLOWS_DIR, { recursive: true });
+      fs.writeFileSync(path.join(installer.REPO_WORKFLOWS_DIR, `${workflowName}.md`), "# Remove");
+
+      const platforms = require("../scripts/platforms");
+      const cli = platforms.getByName("antigravity-cli");
+      const installed = path.join(cli.skillsPath, workflowName);
+      fs.mkdirSync(installed, { recursive: true });
+      fs.writeFileSync(path.join(installed, "SKILL.md"), "# Remove");
+
+      const result = installer.uninstall({ platform: "antigravity-cli" });
+
+      assert.strictEqual(result.totalRemoved, 1);
+      assert.strictEqual(fs.existsSync(installed), false);
     });
   });
 

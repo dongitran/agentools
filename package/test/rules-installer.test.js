@@ -249,4 +249,19 @@ describe("Rules Installer Module", () => {
       assert.strictEqual(result.count, 0);
     });
   });
+
+  describe("installRules", () => {
+    it("should install Antigravity CLI rules to the shared GEMINI.md", () => {
+      const platforms = require("../scripts/platforms");
+      const cli = platforms.getByName("antigravity-cli");
+      fs.mkdirSync(cli.configPath, { recursive: true });
+
+      const result = rulesInstaller.installRules({ rulesDir: testRulesDir });
+      const detail = result.details.find((item) => item.platform === "antigravity-cli");
+
+      assert.ok(detail);
+      assert.strictEqual(detail.rulesPath, path.join(testHome, ".gemini", "GEMINI.md"));
+      assert.ok(fs.readFileSync(detail.rulesPath, "utf-8").includes("Alpha rule content"));
+    });
+  });
 });

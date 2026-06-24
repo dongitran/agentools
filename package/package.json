@@ -1,6 +1,6 @@
 {
   "name": "agentools",
-  "version": "2.10.4",
+  "version": "2.11.0",
   "description": "Universal skill, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync",
   "main": "index.js",
   "bin": {
@@ -17,6 +17,7 @@
     "skills",
     "claude-code",
     "antigravity",
+    "antigravity-cli",
     "cursor",
     "windsurf",
     "copilot",

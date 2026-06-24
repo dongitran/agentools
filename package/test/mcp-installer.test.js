@@ -207,6 +207,26 @@ describe("MCP Installer Module", () => {
       assert.ok(config.mcpServers["my-mcp"]);
     });
 
+    it("should install servers to Antigravity CLI config", () => {
+      const platforms = require("../scripts/platforms");
+      const cli = platforms.getByName("antigravity-cli");
+      fs.mkdirSync(cli.configPath, { recursive: true });
+
+      setupMcpServer("agy-cli-mcp", {
+        name: "agy-cli-mcp",
+        command: "npx",
+        args: ["-y", "pkg"],
+      });
+      const result = mcpInstaller.installMcpServers({ force: true, platform: cli });
+
+      assert.strictEqual(result.added, 1);
+      const config = JSON.parse(fs.readFileSync(cli.mcpConfigPath, "utf-8"));
+      assert.deepStrictEqual(config.mcpServers["agy-cli-mcp"], {
+        command: "npx",
+        args: ["-y", "pkg"],
+      });
+    });
+
     it("should skip existing servers without force", () => {
       const platforms = require("../scripts/platforms");
       const ag = platforms.getByName("antigravity");

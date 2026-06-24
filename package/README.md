@@ -21,7 +21,7 @@
 ## ✨ Features
 
 - 🔄 **Bi-directional sync** — pull/push skills, workflows, and rules from your own GitHub repo
-- 🌐 **Multi-platform** — Claude Code, Antigravity, Cursor, Windsurf, Codex CLI, GitHub Copilot
+- 🌐 **Multi-platform** — Claude Code, Antigravity IDE, Antigravity CLI, Cursor, Windsurf, Codex CLI, GitHub Copilot
 - 🔌 **External sources** — aggregate skills from any public GitHub repo
 - 🔐 **Secret management** — sync MCP secrets from Bitwarden vault to your shell environment
 - 📋 **Global rules** — manage AI behavior rules centrally, synced across all platforms
@@ -93,6 +93,7 @@ agentools update
 |----------|-------------|-------------|--------------|
 | **Claude Code** | `~/.claude/skills/` | ✅ `~/.claude.json` | ✅ `~/.claude/rules/` |
 | **Antigravity IDE** | `~/.gemini/antigravity/skills/` | ✅ `mcp_config.json` | ✅ `~/.gemini/GEMINI.md` |
+| **Antigravity CLI** | `~/.gemini/antigravity-cli/skills/` | ✅ `~/.gemini/antigravity-cli/mcp_config.json` | ✅ `~/.gemini/GEMINI.md` |
 | **Cursor** | `~/.cursor/skills/` | ✅ `~/.cursor/mcp.json` | ✅ `~/.cursor/rules/` |
 | **Windsurf** | `~/.windsurf/skills/` | ✅ `mcp_config.json` | ✅ `global_rules.md` |
 | **Codex CLI** | `~/.codex/skills/` | ✅ `~/.codex/config.toml` | ✅ `~/.codex/AGENTS.md` |
@@ -109,9 +110,11 @@ GitHub repo  →  clone/pull  →  ~/.agentools/sync-repo/
    ↓
 External sources (aggregated automatically)
    ↓
-Install  →  Claude Code / Cursor / Windsurf / Antigravity / Codex
+Install  →  Claude Code / Cursor / Windsurf / Antigravity IDE + CLI / Codex
             Skills + Workflows + Global Rules + MCP config
 ```
+
+Antigravity CLI exposes workflows as slash-command skills, so workflow markdown is installed to `~/.gemini/antigravity-cli/skills/<workflow>/SKILL.md`. On Windows, `~` resolves to `%USERPROFILE%`; the default CLI binary is `%LOCALAPPDATA%\agy\bin\agy.exe`.
 
 **Skill structure in your repo:**
 ```
@@ -153,7 +156,7 @@ Manage AI behavior rules centrally and sync them across all platforms automatica
 
 **Platform behavior:**
 - **Folder-based** (Claude Code, Cursor): copies each `.md` individually
-- **File-based** (Windsurf, Antigravity, Codex): merges all rules into one managed file with clear separators
+- **File-based** (Windsurf, Antigravity IDE, Antigravity CLI, Codex): merges all rules into one managed file with clear separators
 - **Smart sync**: skips unchanged files to avoid unnecessary I/O
 
 ---
