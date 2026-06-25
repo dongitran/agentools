@@ -4,6 +4,9 @@ node_modules/
 .env
 .env.local
 
+# Local planning artifacts
+implementation_plan.md
+
 # Coverage
 coverage/
 .c8_output/
