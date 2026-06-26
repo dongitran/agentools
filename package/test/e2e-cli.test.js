@@ -359,3 +359,14 @@ test("E2E: invalid command should show error and help hint", () => {
     env.cleanup();
   }
 });
+
+test("Workflow: sync-external installs dependencies before invoking CLI", () => {
+  const workflowPath = path.join(__dirname, "..", "..", ".github", "workflows", "sync-external.yml");
+  const workflow = fs.readFileSync(workflowPath, "utf-8");
+  const installIndex = workflow.indexOf("npm ci");
+  const listIndex = workflow.indexOf("node bin/cli.js list-external");
+
+  assert.ok(listIndex !== -1, "Workflow should invoke list-external");
+  assert.ok(installIndex !== -1, "Workflow should install package dependencies");
+  assert.ok(installIndex < listIndex, "Dependencies should install before list-external runs");
+});

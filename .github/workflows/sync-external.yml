@@ -34,6 +34,11 @@ jobs:
         with:
           node-version: '22.x'
 
+      - name: Install dependencies
+        run: |
+          cd package
+          npm ci --ignore-scripts
+
       - name: List external skills
         run: |
           cd package
