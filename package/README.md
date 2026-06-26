@@ -65,6 +65,8 @@ agentools update
 | `pull` | Git pull from repo + auto-install to platforms |
 | `push [--message "msg"]` | Git push to your skills repo |
 | `update` | Pull → sync external skills → push → install |
+| `sync-external` | Sync external sources only |
+| `list-external` | List available external skills |
 | `list` | List installed skills |
 | `platforms` | Show detected platforms |
 | `uninstall` | Remove installed skills |

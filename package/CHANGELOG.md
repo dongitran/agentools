@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.2] - 2026-06-26
+
+### Fixed
+- Restored `agentools sync-external` as a direct external-source sync command instead of routing it through the full `update` flow, so CI runners do not require `agentools init --repo`.
+- Loaded repository-maintained `.agents/external-skills.json` when no user config exists, allowing the scheduled sync workflow to operate from a clean checkout.
+- Granted the sync workflow `contents: write` and `pull-requests: write` permissions so it can create update PRs when external skills change.
+
+### Tests
+- Added regression coverage for `sync-external` without a configured sync repo and repository external-source fallback.
+
 ## [2.11.1] - 2026-06-26
 
 ### Fixed

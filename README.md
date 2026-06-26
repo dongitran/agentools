@@ -69,7 +69,7 @@ agentools update                         # Update from all sources (pull -> sync
 agentools list                           # List installed skills
 agentools platforms                      # Show detected platforms
 agentools uninstall                      # Remove installed skills
-agentools sync-external                  # Alias for update
+agentools sync-external                  # Sync external sources only
 agentools list-external                  # List available external skills
 agentools version                        # Show version
 agentools help                           # Show help
