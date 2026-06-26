@@ -11,6 +11,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 const {
   setupE2ETestEnv,
   createMockGitRepo,
@@ -344,6 +345,36 @@ test("E2E: agentools source list should show all sources", () => {
   }
 });
 
+test("E2E: agentools sync-external should not require a configured sync repo", () => {
+  const env = setupE2ETestEnv();
+  const externalSource = createMockGitRepo({ withSampleSkill: true });
+
+  try {
+    const branch = execSync("git branch --show-current", {
+      cwd: externalSource,
+      encoding: "utf-8",
+    }).trim();
+
+    env.runCLI([
+      "source",
+      "add",
+      externalSource,
+      "--name",
+      "external-source",
+      "--branch",
+      branch,
+    ]);
+
+    const result = env.runCLI(["sync-external", "--source", "external-source"]);
+
+    assert.strictEqual(result.exitCode, 0, "sync-external should succeed without init --repo");
+    assert.ok(!result.stdout.includes("No repository configured"), "Should not run the update flow");
+  } finally {
+    env.cleanup();
+    cleanTempDir(externalSource);
+  }
+});
+
 test("E2E: invalid command should show error and help hint", () => {
   const env = setupE2ETestEnv();
 
@@ -369,4 +400,6 @@ test("Workflow: sync-external installs dependencies before invoking CLI", () => 
   assert.ok(listIndex !== -1, "Workflow should invoke list-external");
   assert.ok(installIndex !== -1, "Workflow should install package dependencies");
   assert.ok(installIndex < listIndex, "Dependencies should install before list-external runs");
+  assert.ok(workflow.includes("contents: write"), "Workflow should be able to commit synced skills");
+  assert.ok(workflow.includes("pull-requests: write"), "Workflow should be able to create sync PRs");
 });

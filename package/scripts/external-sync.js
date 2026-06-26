@@ -10,12 +10,39 @@ const { spawnSync } = require("child_process");
 const configManager = require("./config-manager");
 
 const CACHE_DIR = path.join(require("os").homedir(), ".agentools-external-cache");
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const REPO_EXTERNAL_CONFIG = path.join(REPO_ROOT, ".agents", "external-skills.json");
+const REPO_EXTERNAL_TARGET_DIR = path.join(REPO_ROOT, ".agents", "skills");
+
+/**
+ * Load repository-maintained external sources for CI/repo maintenance.
+ */
+function loadRepositoryConfig() {
+  if (!fs.existsSync(REPO_EXTERNAL_CONFIG)) {
+    return null;
+  }
+
+  const data = JSON.parse(fs.readFileSync(REPO_EXTERNAL_CONFIG, "utf-8"));
+  if (!Array.isArray(data.sources)) {
+    throw new Error(`Invalid external skills config: ${REPO_EXTERNAL_CONFIG}`);
+  }
+
+  return {
+    sources: data.sources.filter((source) => source.enabled !== false),
+    targetDir: REPO_EXTERNAL_TARGET_DIR,
+  };
+}
 
 /**
  * Load external skills configuration from user config
  */
 function loadConfig() {
   try {
+    const repositoryConfig = loadRepositoryConfig();
+    if (!configManager.configExists() && repositoryConfig) {
+      return repositoryConfig;
+    }
+
     // Load sources from user config
     const sources = configManager.getAllSources();
     const config = configManager.loadConfig();

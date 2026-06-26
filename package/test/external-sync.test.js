@@ -34,6 +34,16 @@ describe("External Sync Module", () => {
       assert.ok(config.sources);
       assert.ok(config.targetDir);
     });
+
+    it("should use repository external-skills.json when no user config exists", () => {
+      const dir = configManager.getConfigDir();
+      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+
+      const config = externalSync.loadConfig();
+
+      assert.ok(config.sources.some((source) => source.name === "saptools"));
+      assert.ok(config.targetDir.endsWith(path.join(".agents", "skills")));
+    });
   });
 
   describe("syncAll", () => {

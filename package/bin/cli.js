@@ -792,6 +792,36 @@ function update(args) {
   }
 }
 
+function syncExternal(args) {
+  const options = {
+    source: null,
+    skill: null,
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--source" && args[i + 1]) {
+      options.source = args[++i];
+    } else if (args[i] === "--skill" && args[i + 1]) {
+      options.skill = args[++i];
+    }
+  }
+
+  try {
+    const result = externalSync.syncAll(options);
+
+    console.log(`\n✓ Synced from ${result.synced} source(s)`);
+    console.log(`  Copied: ${result.copied} skill(s)`);
+    console.log(`  Skipped: ${result.skipped} skill(s)`);
+    if (result.failed > 0) {
+      console.log(`  Failed: ${result.failed} source(s)`);
+    }
+    console.log("");
+  } catch (error) {
+    console.error(`\n❌ External sync failed: ${error.message}`);
+    process.exit(1);
+  }
+}
+
 /**
  * Push skills to GitHub repository
  */
@@ -1163,8 +1193,7 @@ async function secretsSync() {
         break;
 
       case "sync-external":
-        // Backward compatibility - alias for update
-        update(args.slice(1));
+        syncExternal(args.slice(1));
         break;
       case "list":
         listSkills();
@@ -1196,4 +1225,3 @@ async function secretsSync() {
     }
   }
 })();
-
