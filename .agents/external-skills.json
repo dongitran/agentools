@@ -14,8 +14,8 @@
           "name": "web-design-guidelines"
         }
       ],
-      "license": "MIT",
-      "attribution": "Skills from Vercel Labs (https://github.com/vercel-labs/agent-skills)"
+      "attribution": "Skills from Vercel Labs (https://github.com/vercel-labs/agent-skills)",
+      "license": "MIT"
     },
     {
       "name": "everything-claude-code",
@@ -96,6 +96,31 @@
       ],
       "license": "MIT",
       "attribution": "NestJS Best Practices from Kadajett (https://github.com/Kadajett/agent-nestjs-skills)"
+    },
+    {
+      "name": "saptools",
+      "repo": "https://github.com/dongitran/saptools.git",
+      "branch": "main",
+      "skills": [
+        {
+          "path": ".skills/cf-hana",
+          "name": "cf-hana"
+        },
+        {
+          "path": ".skills/cf-inspector",
+          "name": "cf-inspector"
+        },
+        {
+          "path": ".skills/cf-events",
+          "name": "cf-events"
+        },
+        {
+          "path": ".skills/cf-logs",
+          "name": "cf-logs"
+        }
+      ],
+      "license": "MIT",
+      "attribution": "SAP BTP Tools from saptools (https://github.com/dongitran/saptools)"
     }
   ]
 }
