@@ -10,6 +10,35 @@ const platforms = require("./platforms");
 
 const mcpInstaller = require("./mcp-installer");
 const rulesInstaller = require("./rules-installer");
+const configManager = require("./config-manager");
+
+function getUserRepoSkillsDir() {
+  try {
+    if (configManager.configExists()) {
+      const config = configManager.loadConfig();
+      if (config.repository && config.repository.local) {
+        return path.join(config.repository.local, ".agents", "skills");
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
+}
+
+function getUserRepoWorkflowsDir() {
+  try {
+    if (configManager.configExists()) {
+      const config = configManager.loadConfig();
+      if (config.repository && config.repository.local) {
+        return path.join(config.repository.local, ".agents", "workflows");
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
+}
 
 const REPO_URL = "https://github.com/dongitran/agentools.git";
 const CACHE_DIR = path.join(platforms.HOME, ".agentools-cache");
@@ -90,29 +119,22 @@ function isRepoCached() {
 function getAvailableSkills() {
   const skills = new Set();
 
-  // Add package bundled skills first (.agents/skills/)
-  if (fs.existsSync(PACKAGE_SKILLS_DIR)) {
-    const packageSkills = fs.readdirSync(PACKAGE_SKILLS_DIR);
-    packageSkills.forEach((name) => {
-      const skillPath = path.join(PACKAGE_SKILLS_DIR, name);
-      const skillFile = path.join(skillPath, "SKILL.md");
-      if (fs.statSync(skillPath).isDirectory() && fs.existsSync(skillFile)) {
-        skills.add(name);
-      }
-    });
+  const dirs = [
+    PACKAGE_SKILLS_DIR,
+    REPO_SKILLS_DIR,
+    getUserRepoSkillsDir()
+  ];
 
-
-  }
-
-  // Merge with skills from external repo cache
-  if (fs.existsSync(REPO_SKILLS_DIR)) {
-    fs.readdirSync(REPO_SKILLS_DIR).forEach((name) => {
-      const skillPath = path.join(REPO_SKILLS_DIR, name);
-      const skillFile = path.join(skillPath, "SKILL.md");
-      if (fs.statSync(skillPath).isDirectory() && fs.existsSync(skillFile)) {
-        skills.add(name);
-      }
-    });
+  for (const dir of dirs) {
+    if (dir && fs.existsSync(dir)) {
+      fs.readdirSync(dir).forEach((name) => {
+        const skillPath = path.join(dir, name);
+        const skillFile = path.join(skillPath, "SKILL.md");
+        if (fs.statSync(skillPath).isDirectory() && fs.existsSync(skillFile)) {
+          skills.add(name);
+        }
+      });
+    }
   }
 
   return Array.from(skills);
@@ -125,18 +147,18 @@ function getAvailableSkills() {
 function getAllWorkflowFiles() {
   const workflows = new Map();
 
-  // Package-bundled workflows first (always available)
-  if (fs.existsSync(PACKAGE_WORKFLOWS_DIR)) {
-    fs.readdirSync(PACKAGE_WORKFLOWS_DIR)
-      .filter((f) => f.endsWith(".md"))
-      .forEach((f) => workflows.set(f, path.join(PACKAGE_WORKFLOWS_DIR, f)));
-  }
+  const dirs = [
+    REPO_WORKFLOWS_DIR,
+    getUserRepoWorkflowsDir(),
+    PACKAGE_WORKFLOWS_DIR
+  ];
 
-  // Repo cache workflows (can override package ones)
-  if (fs.existsSync(REPO_WORKFLOWS_DIR)) {
-    fs.readdirSync(REPO_WORKFLOWS_DIR)
-      .filter((f) => f.endsWith(".md"))
-      .forEach((f) => workflows.set(f, path.join(REPO_WORKFLOWS_DIR, f)));
+  for (const dir of dirs) {
+    if (dir && fs.existsSync(dir)) {
+      fs.readdirSync(dir)
+        .filter((f) => f.endsWith(".md"))
+        .forEach((f) => workflows.set(f, path.join(dir, f)));
+    }
   }
 
   return Array.from(workflows.entries()).map(([name, srcPath]) => ({ name, srcPath }));
@@ -192,8 +214,19 @@ function installSkills(skillsPath, options = {}) {
   }
 
   for (const skillName of skillsToInstall) {
-    // Try package skills first, then repo cache
+    // Try package skills first, then user repo, then repo cache
     let srcPath = path.join(PACKAGE_SKILLS_DIR, skillName);
+    
+    if (!fs.existsSync(srcPath)) {
+      const userRepoSkillsDir = getUserRepoSkillsDir();
+      if (userRepoSkillsDir) {
+        const userPath = path.join(userRepoSkillsDir, skillName);
+        if (fs.existsSync(userPath)) {
+          srcPath = userPath;
+        }
+      }
+    }
+
     if (!fs.existsSync(srcPath)) {
       srcPath = path.join(REPO_SKILLS_DIR, skillName);
     }
