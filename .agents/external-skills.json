@@ -117,6 +117,22 @@
         {
           "path": ".skills/cf-logs",
           "name": "cf-logs"
+        },
+        {
+          "path": ".skills/cf-debugger",
+          "name": "cf-debugger"
+        },
+        {
+          "path": ".skills/cf-explorer",
+          "name": "cf-explorer"
+        },
+        {
+          "path": ".skills/cf-export",
+          "name": "cf-export"
+        },
+        {
+          "path": ".skills/cf-sync",
+          "name": "cf-sync"
         }
       ],
       "license": "MIT",
