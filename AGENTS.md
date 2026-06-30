@@ -41,7 +41,7 @@ agentools/
 │   └── external-skills.json    # External skill source definitions
 ├── .github/workflows/
 │   ├── ci.yml                  # CI: test -> lint -> build -> publish (on package/ changes)
-│   └── sync-external.yml       # Weekly auto-sync external skills (creates PR)
+│   └── sync-external.yml       # Weekly auto-sync external skills (creates and auto-merges PR)
 ├── docs/                       # Project website (GitHub Pages)
 ├── plans/                      # Planning documents
 ├── AGENTS.md                   # This file
@@ -207,7 +207,7 @@ EOF
 **File:** `.github/workflows/sync-external.yml`
 **Triggers:** Weekly (Sunday 00:00 UTC) or manual
 
-Sources defined in `.agents/external-skills.json` (4 sources, 15 skills total).
+Sources defined in `.agents/external-skills.json` (5 sources, 26 skills total).
 
 The `update` command flow:
 1. Pull sync-repo from GitHub
@@ -215,3 +215,5 @@ The `update` command flow:
 3. Copy skills from cache to sync-repo
 4. Commit and push sync-repo
 5. Auto-install skills to detected AI coding platforms
+
+The repository workflow copies configured external skills into `.agents/skills`, creates or updates the `sync-external-skills` pull request when generated content changes, then merges that pull request automatically when repository permissions allow it.
