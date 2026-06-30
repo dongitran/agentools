@@ -133,6 +133,18 @@
         {
           "path": ".skills/cf-sync",
           "name": "cf-sync"
+        },
+        {
+          "path": ".skills/sharepoint-excel",
+          "name": "sharepoint-excel"
+        },
+        {
+          "path": ".skills/cf-live-trace",
+          "name": "cf-live-trace"
+        },
+        {
+          "path": ".skills/cf-request-runner",
+          "name": "cf-request-runner"
         }
       ],
       "license": "MIT",
