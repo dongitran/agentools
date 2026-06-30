@@ -139,6 +139,10 @@
           "name": "sharepoint-excel"
         },
         {
+          "path": ".skills/jira",
+          "name": "jira"
+        },
+        {
           "path": ".skills/cf-live-trace",
           "name": "cf-live-trace"
         },
