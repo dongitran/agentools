@@ -111,12 +111,46 @@ jira worklog OPS-123 --minutes 30
 - `--minutes <number>`: required positive worklog duration.
 - `--comment <text>`: optional worklog comment.
 - `--started <date>`: optional Jira timestamp such as `2026-05-01T08:20:00.000+0000`.
+- Successful writes are appended locally under `~/.saptools/jira/worklog-history/YYYYMM.md`; local history failures warn but do not retry the Jira write.
+
+Summarize local worklog history without calling Jira or reading tokens:
+
+```bash
+jira worklogs --day 2026-05-01 --json
+jira worklogs --issue OPS-123 --month 202605 --json
+jira worklogs --month 202605 --group-by issue
+```
 
 Use `--api-root <url>` only for deterministic tests or compatible fake Atlassian API roots:
 
 ```bash
 jira --api-root http://127.0.0.1:4010/ex/jira issue OPS-123 --json
 ```
+
+
+## Custom Field Discovery And Updates
+
+Use custom field workflows when agents need site-specific fields such as analysis notes, review notes, or completion notes. Always work with Jira display names; do not ask users to provide `customfield_*` IDs and do not invent aliases.
+
+```bash
+jira fields discover
+jira fields discover --search "custom text"
+jira fields search "custom text"
+jira fields pin "Custom text A"
+jira fields pin "Custom text B"
+jira fields update ABC-123 --field 'Custom text A=...' --field 'Custom text B=...'
+```
+
+Important behavior:
+
+- `jira fields discover` always refreshes custom fields from Jira Cloud. There is no `--refresh` flag.
+- `jira fields discover --search <query>` still saves the complete refreshed snapshot; search only filters the command output.
+- `jira fields search <query>` searches the cached snapshot without network calls.
+- Pinned fields are site-specific and stored under `~/.saptools/jira/clouds/<cloudId>/pinned-fields.json`.
+- Pin, unpin, and update commands use exact case-insensitive Jira display names without aliases.
+- The regular human-output footer lists display names only and never exposes `customfield_*` IDs, numeric custom IDs, aliases, schema details, or field values.
+- `jira fields update` checks issue editability with Jira edit metadata before writing and fails before PUT when a pinned field is not editable on that issue.
+- Treat cached field metadata as local user data. It must not contain access tokens, refresh tokens, Authorization headers, OAuth client secrets, raw Jira responses, or field values.
 
 ## Issue Images
 
