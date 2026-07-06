@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.5] - 2026-07-06
+
+### Fixed
+
+- Reclone the installer cache when `~/.agentools-cache` exists but is not a complete Git repository, which can happen after an interrupted clone.
+- Stop retrying deterministic Git merge conflicts during sync-repo pull and parse conflict details from stderr/stdout as well as the thrown message.
+
+## [2.11.4] - 2026-07-06
+
+### Fixed
+
+- Prevented `agentools pull` and `agentools init --repo` auto-install from hanging on the public package cache refresh by installing from the freshly pulled user sync repository without an extra network sync.
+- Added bounded timeout and retry handling to Git cache sync and sync-repo pull operations so transient Git/network stalls fail predictably instead of blocking forever.
+
 ## [2.11.2] - 2026-06-26
 
 ### Fixed

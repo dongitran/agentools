@@ -7,6 +7,9 @@ const fs = require("fs");
 const path = require("path");
 const { execSync, spawnSync } = require("child_process");
 
+const GIT_OPERATION_TIMEOUT_MS = 120000;
+const GIT_OPERATION_MAX_ATTEMPTS = 2;
+
 class SyncManager {
     constructor(config) {
         this.config = config;
@@ -73,7 +76,7 @@ class SyncManager {
         }
 
         try {
-            const output = execSync("git pull", {
+            const output = this.runGitCommandWithRetry("git pull", {
                 cwd: this.repoPath,
                 encoding: "utf-8",
             });
@@ -88,7 +91,7 @@ class SyncManager {
             return { pulled: true };
         } catch (error) {
             // Check if error message contains conflict info
-            const errorMsg = error.message || error.stdout || error.stderr || "";
+            const errorMsg = this.getGitErrorMessage(error);
             if (errorMsg.includes("CONFLICT")) {
                 const conflicts = this.parseConflicts(errorMsg);
                 return { pulled: false, conflicts };
@@ -223,6 +226,47 @@ class SyncManager {
         }
     }
 
+    runGitCommandWithRetry(command, options = {}) {
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= GIT_OPERATION_MAX_ATTEMPTS; attempt++) {
+            try {
+                return execSync(command, {
+                    ...options,
+                    timeout: GIT_OPERATION_TIMEOUT_MS,
+                });
+            } catch (error) {
+                lastError = error;
+                const message = this.getGitErrorMessage(error);
+                if (!this.isRetryableGitError(error)) {
+                    throw error;
+                }
+                const retryText = attempt < GIT_OPERATION_MAX_ATTEMPTS ? " Retrying..." : "";
+                console.error(`Git command attempt ${attempt}/${GIT_OPERATION_MAX_ATTEMPTS} failed: ${message}.${retryText}`);
+            }
+        }
+
+        throw lastError;
+    }
+
+    isRetryableGitError(error) {
+        return !this.getGitErrorMessage(error).includes("CONFLICT");
+    }
+
+    getGitErrorMessage(error) {
+        const output = [error.stdout, error.stderr]
+            .filter(Boolean)
+            .map((value) => value.toString().trim())
+            .filter(Boolean)
+            .join("\n");
+
+        if (error.code === "ETIMEDOUT" || error.signal === "SIGTERM") {
+            return `timed out after ${GIT_OPERATION_TIMEOUT_MS / 1000}s`;
+        }
+
+        return output || error.message;
+    }
+
     /**
      * Update last sync timestamp
      */
@@ -250,5 +294,8 @@ class SyncManager {
         return p.replace(/^~/, process.env.HOME || process.env.USERPROFILE);
     }
 }
+
+SyncManager.GIT_OPERATION_TIMEOUT_MS = GIT_OPERATION_TIMEOUT_MS;
+SyncManager.GIT_OPERATION_MAX_ATTEMPTS = GIT_OPERATION_MAX_ATTEMPTS;
 
 module.exports = SyncManager;

@@ -6,6 +6,9 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+
+const GIT_SYNC_TIMEOUT_MS = 120000;
+const GIT_SYNC_MAX_ATTEMPTS = 2;
 const platforms = require("./platforms");
 
 const mcpInstaller = require("./mcp-installer");
@@ -89,20 +92,68 @@ function copyDir(src, dest, force = false) {
  * Sync repository from GitHub
  * @returns {boolean} Success status
  */
-function syncRepo() {
-  try {
-    if (fs.existsSync(CACHE_DIR)) {
-      console.log("   Updating cached repository...");
-      execSync("git pull --quiet", { cwd: CACHE_DIR, stdio: "pipe" });
-    } else {
-      console.log("   Cloning repository...");
-      execSync(`git clone --quiet "${REPO_URL}" "${CACHE_DIR}"`, { stdio: "pipe" });
+function getGitErrorMessage(error) {
+  const output = [error.stdout, error.stderr]
+    .filter(Boolean)
+    .map((value) => value.toString().trim())
+    .filter(Boolean)
+    .join("\n");
+
+  if (error.code === "ETIMEDOUT" || error.signal === "SIGTERM") {
+    return `timed out after ${GIT_SYNC_TIMEOUT_MS / 1000}s`;
+  }
+
+  return output || error.message;
+}
+
+function runGitSyncCommand(command, options = {}) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= GIT_SYNC_MAX_ATTEMPTS; attempt++) {
+    try {
+      execSync(command, {
+        ...options,
+        stdio: "pipe",
+        timeout: GIT_SYNC_TIMEOUT_MS,
+      });
+      return { ok: true };
+    } catch (error) {
+      lastError = error;
+      const message = getGitErrorMessage(error);
+      const retryText = attempt < GIT_SYNC_MAX_ATTEMPTS ? " Retrying..." : "";
+      console.error(`   Git sync attempt ${attempt}/${GIT_SYNC_MAX_ATTEMPTS} failed: ${message}.${retryText}`);
     }
-    return true;
-  } catch (error) {
-    console.error(`   Failed to sync: ${error.message}`);
+  }
+
+  return { ok: false, reason: getGitErrorMessage(lastError) };
+}
+
+function isGitRepository(dir) {
+  return fs.existsSync(path.join(dir, ".git"));
+}
+
+function syncRepo() {
+  let cacheExists = fs.existsSync(CACHE_DIR);
+
+  if (cacheExists && !isGitRepository(CACHE_DIR)) {
+    console.log("   Cached repository is incomplete; recloning...");
+    fs.rmSync(CACHE_DIR, { recursive: true, force: true });
+    cacheExists = false;
+  }
+
+  const command = cacheExists
+    ? "git pull --quiet"
+    : `git clone --quiet "${REPO_URL}" "${CACHE_DIR}"`;
+
+  console.log(cacheExists ? "   Updating cached repository..." : "   Cloning repository...");
+
+  const result = runGitSyncCommand(command, cacheExists ? { cwd: CACHE_DIR } : {});
+  if (!result.ok) {
+    console.error(`   Failed to sync: ${result.reason}`);
     return false;
   }
+
+  return true;
 }
 
 /**
@@ -435,10 +486,13 @@ module.exports = {
   getAvailableSkills,
   getAvailableWorkflows,
   copyDir,
+  isGitRepository,
   CACHE_DIR,
   REPO_URL,
   REPO_SKILLS_DIR,
   REPO_WORKFLOWS_DIR,
   PACKAGE_SKILLS_DIR,
   PACKAGE_WORKFLOWS_DIR,
+  GIT_SYNC_TIMEOUT_MS,
+  GIT_SYNC_MAX_ATTEMPTS,
 };

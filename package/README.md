@@ -62,7 +62,7 @@ agentools update
 | Command | Description |
 |---------|-------------|
 | `init --repo <url>` | Initialize config, clone repo, and install |
-| `pull` | Git pull from repo + auto-install to platforms |
+| `pull` | Git pull from repo + auto-install to platforms from the local sync repo |
 | `push [--message "msg"]` | Git push to your skills repo |
 | `update` | Pull → sync external skills → push → install |
 | `sync-external` | Sync external sources only |
@@ -108,7 +108,7 @@ agentools update
 ```
 agentools pull / update
    ↓
-GitHub repo  →  clone/pull  →  ~/.agentools/sync-repo/
+GitHub repo  →  clone/pull  →  ~/.agentools/sync-repo/  →  auto-install without extra cache network sync
    ↓
 External sources (aggregated automatically)
    ↓
