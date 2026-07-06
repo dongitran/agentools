@@ -217,12 +217,45 @@ describe("SyncManager Module", () => {
       assert.ok(r.conflicts);
     });
 
+    it("should not retry merge conflicts", () => {
+      const sm = createManager();
+      const error = new Error("git pull failed");
+      error.stderr = "CONFLICT (content): Merge conflict in conflict.txt";
+      mocks.execSync.mockImplementation(() => { throw error; });
+      const r = sm.pull();
+      assert.strictEqual(r.pulled, false);
+      assert.deepStrictEqual(r.conflicts, ["conflict.txt"]);
+      assert.strictEqual(mocks.execSync.calls.length, 1);
+    });
+
     it("should handle generic pull error", () => {
       const sm = createManager();
       mocks.execSync.mockImplementation(() => { throw new Error("network error"); });
       const r = sm.pull();
       assert.strictEqual(r.pulled, false);
       assert.ok(r.reason);
+    });
+
+    it("should apply timeout to git pull", () => {
+      const sm = createManager();
+      mocks.execSync.mockImplementation(() => "Already up to date.");
+      const r = sm.pull();
+      assert.strictEqual(r.pulled, true);
+      const options = mocks.execSync.calls[0][1];
+      assert.strictEqual(options.timeout, SyncManager.GIT_OPERATION_TIMEOUT_MS);
+    });
+
+    it("should retry git pull after a transient failure", () => {
+      const sm = createManager();
+      let attempts = 0;
+      mocks.execSync.mockImplementation(() => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("network hiccup");
+        return "Already up to date.";
+      });
+      const r = sm.pull();
+      assert.strictEqual(r.pulled, true);
+      assert.strictEqual(mocks.execSync.calls.length, 2);
     });
   });
 

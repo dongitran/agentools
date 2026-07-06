@@ -42,7 +42,7 @@ agentools update
 ```bash
 agentools init --repo <url>              # Initialize with repository
 agentools push [--message "msg"]         # Push skills to GitHub
-agentools pull                           # Pull from GitHub + auto-install
+agentools pull                           # Pull from GitHub + auto-install from sync repo
 ```
 
 ### Source Management
@@ -66,6 +66,7 @@ agentools config reset --yes             # Reset to defaults
 ### Installation
 ```bash
 agentools update                         # Update from all sources (pull -> sync -> push -> install)
+# Pull/init auto-install uses your local sync repo directly; standalone installs retry bounded Git cache syncs.
 agentools list                           # List installed skills
 agentools platforms                      # Show detected platforms
 agentools uninstall                      # Remove installed skills

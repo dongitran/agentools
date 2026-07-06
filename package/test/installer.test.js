@@ -101,16 +101,44 @@ describe("Installer Module", () => {
     });
 
     it("should pull when cache exists", () => {
-      fs.mkdirSync(installer.CACHE_DIR, { recursive: true });
+      fs.mkdirSync(path.join(installer.CACHE_DIR, ".git"), { recursive: true });
       mocks.execSync.mockImplementation(() => "");
       assert.strictEqual(installer.syncRepo(), true);
       const cmd = mocks.execSync.calls[0][0];
       assert.ok(cmd.includes("git pull"));
     });
 
+    it("should reclone when cache directory is not a git repository", () => {
+      fs.mkdirSync(installer.CACHE_DIR, { recursive: true });
+      fs.writeFileSync(path.join(installer.CACHE_DIR, "partial.txt"), "interrupted clone");
+      mocks.execSync.mockImplementation(() => "");
+      assert.strictEqual(installer.syncRepo(), true);
+      const cmd = mocks.execSync.calls[0][0];
+      assert.ok(cmd.includes("git clone"));
+      assert.ok(!fs.existsSync(path.join(installer.CACHE_DIR, "partial.txt")));
+    });
+
     it("should return false on error", () => {
       mocks.execSync.mockImplementation(() => { throw new Error("fail"); });
       assert.strictEqual(installer.syncRepo(), false);
+    });
+
+    it("should apply timeout to git sync commands", () => {
+      mocks.execSync.mockImplementation(() => "");
+      assert.strictEqual(installer.syncRepo(), true);
+      const options = mocks.execSync.calls[0][1];
+      assert.strictEqual(options.timeout, installer.GIT_SYNC_TIMEOUT_MS);
+    });
+
+    it("should retry transient git sync failures", () => {
+      let attempts = 0;
+      mocks.execSync.mockImplementation(() => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("network hiccup");
+        return "";
+      });
+      assert.strictEqual(installer.syncRepo(), true);
+      assert.strictEqual(mocks.execSync.calls.length, 2);
     });
   });
 

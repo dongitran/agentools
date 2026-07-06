@@ -262,9 +262,9 @@ function init(args) {
     configManager.setConfigValue("repository.local", localPath);
     console.log("✅ Repository configured!\n");
 
-    // Auto-install after initial clone (with sync to populate cache)
+    // Auto-install from the freshly cloned sync repo without a second network cache refresh
     console.log("📥 Auto-installing skills + MCP servers...\n");
-    install(["--force"]);
+    install(["--force", "--no-sync"]);
   }
 
   const detected = platforms.detectAll();
@@ -893,7 +893,7 @@ function pull(args) {
 
       if (!noInstall) {
         console.log("📥 Auto-installing skills + MCP servers...\n");
-        install(["--force"]); // Force install to ensure latest
+        install(["--force", "--no-sync"]); // Install from freshly pulled sync repo without network cache refresh
       }
     } else {
       console.log(`⚠️  ${result.reason || "Pull failed"}`);
