@@ -15,8 +15,10 @@ description: Start or delegate work to a configured project subagent and ensure 
 1. Check what global agents are currently available. If none are suitable, use the current instruction context to identify other available subagents.
 2. Select the subagent whose description and usage best match the requirements of the current task (even if the user did not explicitly request a subagent).
 3. Resolve the selected subagent's config using the following priority:
-   - First, check for a custom agent config in the current workspace.
-   - Second, check for a custom agent config in the global environment.
+   - First, check for a custom agent config in the current workspace (e.g., `.agents/agents/*`).
+   - Second, check for a custom agent config in the global environment depending on the platform:
+     - Antigravity: `~/.gemini/antigravity-cli/agents/*`
+     - Codex: `~/.codex/agents/*`
    - Finally, fall back to platform-native roles or agent definitions exposed by available tools.
 4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
 5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
