@@ -18,7 +18,6 @@ description: Start or delegate work to a configured project subagent and ensure 
    - First, check for a custom agent config in the current workspace.
    - Second, check for a custom agent config in the global environment.
    - Finally, fall back to platform-native roles or agent definitions exposed by available tools.
-   - Note: Always use a user-provided config path or identifier if one is explicitly supplied.
 4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
 5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
 6. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
