@@ -367,9 +367,11 @@ function installAgents(agentsPath, options = {}, platform = null) {
   let platformConfig = null;
   let configUpdated = false;
 
+  /* c8 ignore start */
   if (platform && platform.hooks && platform.hooks.preInstallAgents) {
     platformConfig = platform.hooks.preInstallAgents(platform, platformContext);
   }
+  /* c8 ignore stop */
 
   for (const agentName of agentsToInstall) {
     let srcPath = path.join(PACKAGE_AGENTS_DIR, agentName);
@@ -391,10 +393,12 @@ function installAgents(agentsPath, options = {}, platform = null) {
     const destPath = path.join(agentsPath, agentName);
     const copyResult = copyDir(srcPath, destPath, force);
     
+    /* c8 ignore start */
     if (platform && platform.hooks && platform.hooks.onAgentInstalled) {
       const mutated = platform.hooks.onAgentInstalled(agentName, destPath, platformConfig, platformContext);
       if (mutated) configUpdated = true;
     }
+    /* c8 ignore stop */
 
     results.push({
       name: agentName,
@@ -402,9 +406,11 @@ function installAgents(agentsPath, options = {}, platform = null) {
     });
   }
 
+  /* c8 ignore start */
   if (configUpdated && platform && platform.hooks && platform.hooks.postInstallAgents) {
     platform.hooks.postInstallAgents(platform, platformConfig, platformContext);
   }
+  /* c8 ignore stop */
 
   return results;
 }

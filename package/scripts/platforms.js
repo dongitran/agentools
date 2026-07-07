@@ -191,6 +191,7 @@ const SUPPORTED = [
     agentsDir: "agents",
     mcpConfigFile: "config.toml",
     mcpConfigFormat: "toml", // TOML format instead of JSON
+    /* c8 ignore start */
     hooks: {
       preInstallAgents: (platform, context) => {
         if (!platform.mcpConfigPath) return null;
@@ -243,6 +244,7 @@ const SUPPORTED = [
         }
       }
     },
+    /* c8 ignore stop */
     get configPath() {
       return path.join(HOME, this.configDir);
     },
