@@ -580,18 +580,38 @@ function uninstallFromPlatform(platform, skill = null) {
     
     // If a specific skill name was provided, maybe it's an agent name too
     if (skill) {
-      const agentPath = path.join(platform.agentsPath, skill);
-      if (fs.existsSync(agentPath) && ourAgents.includes(skill)) {
-        fs.rmSync(agentPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
-        removedAgents++;
+      if (ourAgents.includes(skill)) {
+        const agentPath = path.join(platform.agentsPath, skill);
+        const agentTomlPath = path.join(platform.agentsPath, `${skill}.toml`);
+        let removed = false;
+        
+        if (fs.existsSync(agentPath)) {
+          fs.rmSync(agentPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+          removed = true;
+        }
+        if (fs.existsSync(agentTomlPath)) {
+          fs.rmSync(agentTomlPath, { force: true, maxRetries: 3, retryDelay: 100 });
+          removed = true;
+        }
+        
+        if (removed) removedAgents++;
       }
     } else {
       for (const agentName of ourAgents) {
         const agentPath = path.join(platform.agentsPath, agentName);
+        const agentTomlPath = path.join(platform.agentsPath, `${agentName}.toml`);
+        let removed = false;
+        
         if (fs.existsSync(agentPath)) {
           fs.rmSync(agentPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
-          removedAgents++;
+          removed = true;
         }
+        if (fs.existsSync(agentTomlPath)) {
+          fs.rmSync(agentTomlPath, { force: true, maxRetries: 3, retryDelay: 100 });
+          removed = true;
+        }
+        
+        if (removed) removedAgents++;
       }
     }
   }
