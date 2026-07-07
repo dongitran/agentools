@@ -176,21 +176,32 @@ function loadConfig() {
  * Save user config
  */
 function saveConfig(config) {
-  // Create backup
-  if (fs.existsSync(CONFIG_FILE)) {
-    const backupPath = `${CONFIG_FILE}.backup`;
-    fs.copyFileSync(CONFIG_FILE, backupPath);
-  }
+  try {
+    const configDir = path.dirname(CONFIG_FILE);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
 
-  // Ensure directory exists
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
+    // Write to a unique temporary file first for atomicity
+    const uniqueId = `${process.pid}.${Date.now()}`;
+    const tmpFile = `${CONFIG_FILE}.${uniqueId}.tmp`;
+    fs.writeFileSync(tmpFile, JSON.stringify(config, null, 2), "utf-8");
 
-  // Write config
-  const tmpFile = `${CONFIG_FILE}.tmp`;
-  fs.writeFileSync(tmpFile, JSON.stringify(config, null, 2), "utf-8");
-  fs.renameSync(tmpFile, CONFIG_FILE);
+    // Safe backup with unique name
+    if (fs.existsSync(CONFIG_FILE)) {
+      const backupPath = `${CONFIG_FILE}.${uniqueId}.backup`;
+      fs.copyFileSync(CONFIG_FILE, backupPath);
+      
+      // Keep only latest backup (rename to static backup after copy)
+      fs.renameSync(backupPath, `${CONFIG_FILE}.backup`);
+    }
+
+    // Atomic rename replaces the original file
+    fs.renameSync(tmpFile, CONFIG_FILE);
+  } catch (error) {
+    console.error(`Failed to save config: ${error.message}`);
+    throw error;
+  }
 }
 
 /**

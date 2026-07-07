@@ -1045,7 +1045,7 @@ function rulesCmd(subcommand, rulesArgs) {
 
     // Read content and strip YAML frontmatter before installing
     const rawContent = fs.readFileSync(srcFile, "utf-8");
-    const strippedContent = rawContent.replace(/^---[\s\S]*?---\n+/, "");
+    const strippedContent = rawContent.replace(/^---[\s\S]*?---\r?\n+/, "");
 
     const cwd = process.cwd();
     let installed = 0;

@@ -96,8 +96,12 @@ function copyDir(src, dest, force = false) {
       if (fs.existsSync(destPath) && !force) {
         skipped++;
       } else {
-        fs.copyFileSync(srcPath, destPath);
-        copied++;
+        try {
+          fs.copyFileSync(srcPath, destPath);
+          copied++;
+        } catch (e) {
+          console.warn(`  ⚠️  Failed to copy ${srcPath}: ${e.message}`);
+        }
       }
     }
   }
@@ -198,8 +202,12 @@ function getAvailableSkills() {
       fs.readdirSync(dir).forEach((name) => {
         const skillPath = path.join(dir, name);
         const skillFile = path.join(skillPath, "SKILL.md");
-        if (fs.statSync(skillPath).isDirectory() && fs.existsSync(skillFile)) {
-          skills.add(name);
+        try {
+          if (fs.statSync(skillPath).isDirectory() && fs.existsSync(skillFile)) {
+            skills.add(name);
+          }
+        } catch (e) {
+          // Ignore broken symlinks or permission errors
         }
       });
     }
@@ -225,18 +233,22 @@ function getAvailableAgents() {
       fs.readdirSync(dir).forEach((name) => {
         const agentPath = path.join(dir, name);
         const agentFile = path.join(agentPath, "agent.json");
-        if (fs.statSync(agentPath).isDirectory() && fs.existsSync(agentFile)) {
-          try {
-            const agentContent = fs.readFileSync(agentFile, "utf8");
-            const agentData = JSON.parse(agentContent);
-            if (!agentData.name || (!agentData.instructions && !agentData.systemPrompt)) {
-              console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (missing name or instructions)`);
-              return; // Skip adding
+        try {
+          if (fs.statSync(agentPath).isDirectory() && fs.existsSync(agentFile)) {
+            try {
+              const agentContent = fs.readFileSync(agentFile, "utf8");
+              const agentData = JSON.parse(agentContent);
+              if (!agentData.name || (!agentData.instructions && !agentData.systemPrompt)) {
+                console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (missing name or instructions)`);
+                return; // Skip adding
+              }
+              agents.add(name);
+            } catch (e) {
+              console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (${e.message})`);
             }
-            agents.add(name);
-          } catch (e) {
-            console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (${e.message})`);
           }
+        } catch (e) {
+          // Ignore broken symlinks or permission errors
         }
       });
     }
@@ -541,10 +553,14 @@ function installWorkflows(platform, skillsPath, force = false) {
       workflows.push({ name, skipped: 1, copied: 0 });
     } else {
       const content = fs.readFileSync(srcPath, "utf-8");
-      if (!content.includes(MANAGED_WORKFLOW_HEADER)) {
-        fs.writeFileSync(destPath, `${MANAGED_WORKFLOW_HEADER}\n${content}`, "utf-8");
-      } else {
-        fs.writeFileSync(destPath, content, "utf-8");
+      try {
+        if (!content.includes(MANAGED_WORKFLOW_HEADER)) {
+          fs.writeFileSync(destPath, `${MANAGED_WORKFLOW_HEADER}\n${content}`, "utf-8");
+        } else {
+          fs.writeFileSync(destPath, content, "utf-8");
+        }
+      } catch (e) {
+        console.warn(`  ⚠️  Failed to install workflow ${workflowFile}: ${e.message}`);
       }
       workflows.push({ name, skipped: 0, copied: 1 });
     }

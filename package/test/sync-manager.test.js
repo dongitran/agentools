@@ -186,12 +186,16 @@ describe("SyncManager Module", () => {
 
     it("should throw when no repository url", () => {
       const sm = new SyncManager({ repository: { url: null, local: env.tmpDir } });
-      assert.throws(() => sm.pull(), /No repository/);
+      const result = sm.pull();
+      assert.strictEqual(result.pulled, false);
+      assert.ok(result.reason.includes("No repository"));
     });
 
     it("should throw when repo path does not exist", () => {
       const sm = new SyncManager({ repository: { url: "https://x.com", local: "/nonexistent" } });
-      assert.throws(() => sm.pull(), /not found/);
+      const result = sm.pull();
+      assert.strictEqual(result.pulled, false);
+      assert.ok(result.reason.includes("not found"));
     });
 
     it("should succeed on clean pull", () => {
@@ -255,7 +259,7 @@ describe("SyncManager Module", () => {
       });
       const r = sm.pull();
       assert.strictEqual(r.pulled, true);
-      assert.strictEqual(mocks.execSync.calls.length, 2);
+      assert.strictEqual(mocks.execSync.calls.length, 3); // checkout (fail), checkout (success), pull (success)
     });
   });
 
@@ -266,7 +270,7 @@ describe("SyncManager Module", () => {
       const sm = createManager();
       mocks.execSync.mockImplementation((cmd) => {
         if (cmd.includes("status")) return "M file.txt\n";
-        if (cmd.includes("pull")) return "Already up to date.";
+        if (cmd.includes("pull") || cmd.includes("checkout")) return "Already up to date.";
         return "";
       });
       fs.mkdirSync(path.join(sm.repoPath, ".agents", "workflows"), { recursive: true });

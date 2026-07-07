@@ -68,27 +68,30 @@ class SyncManager {
      */
     pull(options = {}) {
         if (!this.config.repository.url) {
-            throw new Error("No repository configured");
+            return { pulled: false, reason: "No repository configured" };
         }
 
         if (!fs.existsSync(this.repoPath)) {
-            throw new Error(`Repository not found at ${this.repoPath}`);
+            return { pulled: false, reason: `Repository not found at ${this.repoPath}` };
         }
 
         try {
+            const branch = this.config.repository.branch || "main";
             if (options.force) {
-                const branch = this.config.repository.branch || "main";
                 this.runGitCommandWithRetry("git fetch --all", { cwd: this.repoPath });
+                this.runGitCommandWithRetry(`git checkout ${branch}`, { cwd: this.repoPath });
                 this.runGitCommandWithRetry(`git reset --hard origin/${branch}`, { cwd: this.repoPath });
                 this.runGitCommandWithRetry("git clean -fd", { cwd: this.repoPath });
             } else {
-                const output = this.runGitCommandWithRetry("git pull", {
+                // Ensure we are on the correct branch before pulling
+                this.runGitCommandWithRetry(`git checkout ${branch}`, { cwd: this.repoPath });
+                const output = this.runGitCommandWithRetry(`git pull origin ${branch}`, {
                     cwd: this.repoPath,
                     encoding: "utf-8",
                 });
 
                 // Check for conflicts
-                if (output.includes("CONFLICT")) {
+                if (output && output.match(/\bCONFLICT \(/)) {
                     const conflicts = this.parseConflicts(output);
                     return { pulled: false, conflicts };
                 }
@@ -240,26 +243,22 @@ class SyncManager {
     }
 
     runGitCommandWithRetry(command, options = {}) {
-        let lastError = null;
+        const env = { ...process.env, ...options.env, LC_ALL: "C" };
+        const commandOptions = { ...options, env, timeout: GIT_OPERATION_TIMEOUT_MS };
 
         for (let attempt = 1; attempt <= GIT_OPERATION_MAX_ATTEMPTS; attempt++) {
             try {
-                return execSync(command, {
-                    ...options,
-                    timeout: GIT_OPERATION_TIMEOUT_MS,
-                });
+                return execSync(command, commandOptions)?.toString();
             } catch (error) {
-                lastError = error;
-                const message = this.getGitErrorMessage(error);
-                if (!this.isRetryableGitError(error)) {
+                // If it's the last attempt or the error is not retryable, throw it
+                if (attempt === GIT_OPERATION_MAX_ATTEMPTS || !this.isRetryableGitError(error)) {
                     throw error;
                 }
-                const retryText = attempt < GIT_OPERATION_MAX_ATTEMPTS ? " Retrying..." : "";
-                console.error(`Git command attempt ${attempt}/${GIT_OPERATION_MAX_ATTEMPTS} failed: ${message}.${retryText}`);
+                console.log(`Git command attempt ${attempt}/${GIT_OPERATION_MAX_ATTEMPTS} failed: ${error.message.split("\n")[0]}. Retrying...`);
+                // Synchronous delay before retry (2000ms)
+                Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
             }
         }
-
-        throw lastError;
     }
 
     isRetryableGitError(error) {

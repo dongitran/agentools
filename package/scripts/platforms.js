@@ -230,10 +230,23 @@ const SUPPORTED = [
             if (file.endsWith(".toml")) {
               const agentName = file.replace(".toml", "");
               if (!agentsToInstall.includes(agentName)) {
+                const filePath = context.path.join(agentsPath, file);
+                let content = "";
                 try {
-                  context.fs.unlinkSync(context.path.join(agentsPath, file));
+                  content = context.fs.readFileSync(filePath, "utf-8");
                 } catch (e) {
-                  console.warn(`  ⚠️  Failed to clean up Codex agent file ${file}: ${e.message}`);
+                  // ignore
+                }
+                if (content.includes("# @agentools-managed")) {
+                  try {
+                    context.fs.unlinkSync(filePath);
+                  } catch (e) {
+                    // Ignore permission errors on unlink
+                  }
+                  if (platformConfig && platformConfig.agents && platformConfig.agents[agentName]) {
+                    delete platformConfig.agents[agentName];
+                    mutated = true;
+                  }
                 }
               }
             }
@@ -285,7 +298,8 @@ const SUPPORTED = [
               codexConfig.skills = agentConfig.skills;
             }
 
-            context.fs.writeFileSync(targetTomlPath, context.toml.stringify(codexConfig), "utf-8");
+            const tomlContent = `# @agentools-managed\n${context.toml.stringify(codexConfig)}`;
+            context.fs.writeFileSync(targetTomlPath, tomlContent, "utf-8");
             
             // Clean up the copied agent folder as Codex expects individual files, not directories
             context.fs.rmSync(destPath, { recursive: true, force: true });
