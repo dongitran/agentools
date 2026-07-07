@@ -9,22 +9,26 @@ description: Start or delegate work to a configured project subagent and ensure 
 
 Use this skill from the main agent to start the appropriate configured subagent without hard-coding agent-specific instructions in the launcher.
 
-The source of truth for available subagents is `AGENTS.md`. Each subagent's concrete instructions, required skills, and role live in `.agents/agents/<name>/agent.json`.
+The source of truth for available subagents is the nearest relevant `AGENTS.md`. Treat each selected subagent's concrete instructions, required skills, and role metadata as a resolved runtime config, not as a fixed repository path. Different CLIs may expose that config as a platform-native role, a session registry entry, a project-specific manifest, or an explicit path provided by the user.
 
 ## Selection Workflow
 
 1. Read the nearest relevant `AGENTS.md`.
 2. Select the subagent whose description and usage match the user's request.
-3. Read that subagent's `.agents/agents/<name>/agent.json`.
-4. Resolve every skill listed in `agent.json.skills`.
-5. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
-6. Do not use tools directly when `AGENTS.md` says the subagent owns that workflow.
+3. Resolve the selected subagent's config through the current platform or session:
+   - Prefer platform-native roles or agent definitions exposed by available tools.
+   - Use project docs or config locations only when they are explicitly named in `AGENTS.md`, user context, or tool metadata.
+   - Use a user-provided config path or identifier when one is supplied.
+4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
+5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
+6. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
+7. Do not use tools directly when `AGENTS.md` says the subagent owns that workflow.
 
 ## Required Skill Loading
 
-Treat `agent.json.skills` as required runtime dependencies, not as proof that the platform has auto-loaded those skills.
+Treat the resolved config's `skills` field, or equivalent platform metadata, as required runtime dependencies, not as proof that the platform has auto-loaded those skills.
 
-For every skill listed in `.agents/agents/<name>/agent.json`:
+For every required skill listed by the resolved subagent config:
 
 1. Resolve the skill by name through the current platform or session skill registry.
 2. If the platform requires an explicit skill path, use the platform-resolved path or an explicit path provided by the user.
@@ -35,9 +39,9 @@ For every skill listed in `.agents/agents/<name>/agent.json`:
 
 ## Model Selection
 
-If `.agents/agents/<name>/agent.json` includes `codexModel`, pass it only when creating a Codex subagent and the current Codex runtime supports model overrides. Do not apply `codexModel` to Antigravity.
+If the resolved config includes `codexModel`, pass it only when creating a Codex subagent and the current Codex runtime supports model overrides. Do not apply `codexModel` to Antigravity.
 
-If `.agents/agents/<name>/agent.json` includes `codexReasoningEffort`, pass it only when creating a Codex subagent and the current Codex runtime supports reasoning-effort overrides.
+If the resolved config includes `codexReasoningEffort`, pass it only when creating a Codex subagent and the current Codex runtime supports reasoning-effort overrides.
 
 If the selected platform does not support the requested override, or if no override is configured, let the subagent inherit the parent/session defaults.
 
@@ -45,7 +49,7 @@ If the selected platform does not support the requested override, or if no overr
 
 When `define_subagent` and `invoke_subagent` are available:
 
-1. Define a subagent using values from `.agents/agents/<name>/agent.json`.
+1. Define a subagent using the resolved subagent config. If the platform already exposes the subagent as a native role, use the native role instead of reconstructing it.
 2. Use full permissions unless the agent config says otherwise:
    - `enable_write_tools: true`
    - `enable_mcp_tools: true`
@@ -61,22 +65,23 @@ When `define_subagent` and `invoke_subagent` are available:
 
 When `multi_agent_v1.spawn_agent` is available:
 
-1. Spawn a `worker` agent for execution tasks, or an `explorer` agent for bounded codebase questions.
-2. Prefer `fork_context: false` unless the subagent needs the current conversation history.
-3. If `agent.json.codexModel` is present, pass it as `model` when the current Codex runtime supports model overrides.
-4. If `agent.json.codexReasoningEffort` is present, pass it as `reasoning_effort` when the current Codex runtime supports reasoning-effort overrides.
-5. Pass the selected agent config and required skills as structured items when supported:
+1. Prefer spawning the configured subagent by its platform-native role name when that role is available.
+2. Spawn a generic `worker` agent for execution tasks, or an `explorer` agent for bounded codebase questions, only when no configured subagent role is available.
+3. Prefer `fork_context: false` unless the subagent needs the current conversation history.
+4. If the resolved config includes `codexModel`, pass it as `model` when the current Codex runtime supports model overrides.
+5. If the resolved config includes `codexReasoningEffort`, pass it as `reasoning_effort` when the current Codex runtime supports reasoning-effort overrides.
+6. Pass the selected agent config identifier and required skills as structured items when supported. Include a config path only when the platform or user provided an explicit resolved path:
 
 ```json
 {
-  "agent_type": "worker",
+  "agent_type": "<subagent-name-or-worker>",
   "fork_context": false,
-  "model": "<agent.json.codexModel when present and supported>",
-  "reasoning_effort": "<agent.json.codexReasoningEffort when present and supported>",
+  "model": "<resolved codexModel when present and supported>",
+  "reasoning_effort": "<resolved codexReasoningEffort when present and supported>",
   "items": [
     {
       "type": "text",
-      "text": "Use this agent config: .agents/agents/<name>/agent.json"
+      "text": "Use the resolved config for subagent <subagent-name>."
     },
     {
       "type": "skill",
@@ -90,10 +95,10 @@ When `multi_agent_v1.spawn_agent` is available:
 }
 ```
 
-6. Repeat the skill item for every skill listed in `agent.json.skills`.
-7. If skill items are unavailable, write a concise prompt that lists every required skill by name, plus any resolved paths only when the platform requires paths, and tells the worker to follow them before acting.
-8. Wait for the subagent only when its result is needed for the next response or next action.
-9. Close completed agents when they are no longer needed.
+7. Repeat the skill item for every required skill listed by the resolved config.
+8. If skill items are unavailable, write a concise prompt that lists every required skill by name, plus any resolved paths only when the platform requires paths, and tells the worker to follow them before acting.
+9. Wait for the subagent only when its result is needed for the next response or next action.
+10. Close completed agents when they are no longer needed.
 
 ## Reporting
 
