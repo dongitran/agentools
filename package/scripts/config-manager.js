@@ -129,23 +129,6 @@ function migrateConfig(oldConfig) {
  * Load user config
  */
 function loadConfig() {
-  if (!fs.existsSync(CONFIG_FILE)) {
-    // Auto-initialize if not exists
-    console.log("📝 Config not found, creating default config...");
-    initConfig();
-  }
-
-  const data = fs.readFileSync(CONFIG_FILE, "utf-8");
-  let config = JSON.parse(data);
-
-  // Auto-migrate from older versions
-  if (config.version !== CONFIG_VERSION) {
-    console.log(`🔄 Migrating config from v${config.version} to v${CONFIG_VERSION}...`);
-    config = migrateConfig(config);
-    saveConfig(config);
-    console.log("✅ Config migrated successfully!");
-  }
-
   return config;
 }
 
