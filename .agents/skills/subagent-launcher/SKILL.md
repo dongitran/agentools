@@ -1,6 +1,6 @@
 ---
 name: subagent-launcher
-description: Start or delegate work to a configured project subagent and ensure its configured skills are loaded. Use when AGENTS.md or the user says to call, launch, spawn, invoke, delegate to, or use a specialized subagent; when a task matches an available subagent listed in AGENTS.md; or when a platform-specific subagent command is needed for Antigravity or Codex.
+description: Start or delegate work to a configured project subagent and ensure its configured skills are loaded. Use when current instructions or the user says to call, launch, spawn, invoke, delegate to, or use a specialized subagent; when a task matches an available subagent in the current instruction context; or when a platform-specific subagent command is needed for Antigravity or Codex.
 ---
 
 # Subagent Launcher
@@ -9,20 +9,22 @@ description: Start or delegate work to a configured project subagent and ensure 
 
 Use this skill from the main agent to start the appropriate configured subagent without hard-coding agent-specific instructions in the launcher.
 
-The source of truth for available subagents is the nearest relevant `AGENTS.md`. Treat each selected subagent's concrete instructions, required skills, and role metadata as a resolved runtime config, not as a fixed repository path. Different CLIs may expose that config as a platform-native role, a session registry entry, a project-specific manifest, or an explicit path provided by the user.
+Use the current instruction context as the source of truth for available subagents. Treat each selected subagent's concrete instructions, required skills, and role metadata as a resolved runtime config, not as a fixed repository path. Different CLIs may expose that config as a platform-native role, a session registry entry, a project-specific manifest, or an explicit path provided by the user.
+
+Before defining a new agent, check whether a suitable global agent config already exists.
 
 ## Selection Workflow
 
-1. Read the nearest relevant `AGENTS.md`.
+1. Use the current instruction context to identify available subagents.
 2. Select the subagent whose description and usage match the user's request.
 3. Resolve the selected subagent's config through the current platform or session:
    - Prefer platform-native roles or agent definitions exposed by available tools.
-   - Use project docs or config locations only when they are explicitly named in `AGENTS.md`, user context, or tool metadata.
+   - Use project docs or config locations only when they are explicitly named in current instructions, user context, or tool metadata.
    - Use a user-provided config path or identifier when one is supplied.
 4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
 5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
 6. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
-7. Do not use tools directly when `AGENTS.md` says the subagent owns that workflow.
+7. Do not use tools directly when current instructions say the subagent owns that workflow.
 
 ## Required Skill Loading
 
