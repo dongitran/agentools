@@ -7,20 +7,18 @@ description: Start or delegate work to a configured project subagent and ensure 
 
 ## Purpose
 
-Use this skill from the main agent to start the appropriate configured subagent without hard-coding agent-specific instructions in the launcher.
-
-Use the current instruction context as the source of truth for available subagents. Treat each selected subagent's concrete instructions, required skills, and role metadata as a resolved runtime config, not as a fixed repository path. Different CLIs may expose that config as a platform-native role, a session registry entry, a project-specific manifest, or an explicit path provided by the user.
-
-Before defining a new agent, check whether a suitable global agent config already exists.
+1. You MUST check whether a suitable global agent config already exists.
+2. If it does not exist, rely on the current context to create appropriate instructions for the agent before launching.
 
 ## Selection Workflow
 
-1. Use the current instruction context to identify available subagents.
-2. Select the subagent whose description and usage match the user's request.
-3. Resolve the selected subagent's config through the current platform or session:
-   - Prefer platform-native roles or agent definitions exposed by available tools.
-   - Use project docs or config locations only when they are explicitly named in current instructions, user context, or tool metadata.
-   - Use a user-provided config path or identifier when one is supplied.
+1. Check what global agents are currently available. If none are suitable, use the current instruction context to identify other available subagents.
+2. Select the subagent whose description and usage best match the requirements of the current task (even if the user did not explicitly request a subagent).
+3. Resolve the selected subagent's config using the following priority:
+   - First, check for a custom agent config in the current workspace.
+   - Second, check for a custom agent config in the global environment.
+   - Finally, fall back to platform-native roles or agent definitions exposed by available tools.
+   - Note: Always use a user-provided config path or identifier if one is explicitly supplied.
 4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
 5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
 6. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
