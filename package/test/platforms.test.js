@@ -41,6 +41,12 @@ describe("Platforms Module", () => {
         assert.ok(p.skillsPath, `${p.name} should have skillsPath`);
       });
     });
+
+    it("should have agentsPath for agent-supporting platforms", () => {
+      platforms.SUPPORTED.filter(p => ["claude", "antigravity", "antigravity-cli", "codex"].includes(p.name)).forEach(p => {
+        assert.ok(p.agentsPath, `${p.name} should have agentsPath`);
+      });
+    });
   });
 
   describe("Claude Code platform", () => {
@@ -53,6 +59,11 @@ describe("Platforms Module", () => {
       const claude = platforms.getByName("claude");
       assert.strictEqual(claude.commandsDir, "commands");
       assert.ok(claude.commandsPath.includes("commands"));
+    });
+    it("should have agentsDir and agentsPath", () => {
+      const claude = platforms.getByName("claude");
+      assert.strictEqual(claude.agentsDir, "agents");
+      assert.ok(claude.agentsPath.includes("agents"));
     });
     it("should detect based on .claude dir", () => {
       const claude = platforms.getByName("claude");
@@ -89,6 +100,11 @@ describe("Platforms Module", () => {
       const ag = platforms.getByName("antigravity");
       assert.strictEqual(ag.workflowsDir, "global_workflows");
       assert.ok(ag.workflowsPath.includes("global_workflows"));
+    });
+    it("should have agentsDir and agentsPath", () => {
+      const ag = platforms.getByName("antigravity");
+      assert.strictEqual(ag.agentsDir, "agents");
+      assert.ok(ag.agentsPath.includes("agents"));
     });
     it("should have mcpConfigPath", () => {
       const ag = platforms.getByName("antigravity");
@@ -144,6 +160,7 @@ describe("Platforms Module", () => {
 
       assert.ok(cli.configPath.endsWith(path.join(".gemini", "antigravity-cli")));
       assert.ok(cli.skillsPath.endsWith(path.join(".gemini", "antigravity-cli", "skills")));
+      assert.ok(cli.agentsPath.endsWith(path.join(".gemini", "antigravity-cli", "agents")));
       assert.ok(cli.mcpConfigPath.endsWith(path.join(".gemini", "antigravity-cli", "mcp_config.json")));
       assert.ok(cli.rulesPath.endsWith(path.join(".gemini", "GEMINI.md")));
     });
@@ -256,6 +273,11 @@ describe("Platforms Module", () => {
       const codex = platforms.getByName("codex");
       fs.mkdirSync(codex.configPath, { recursive: true });
       assert.strictEqual(codex.detect(), true);
+    });
+    it("should have agentsDir and agentsPath", () => {
+      const codex = platforms.getByName("codex");
+      assert.strictEqual(codex.agentsDir, "agents");
+      assert.ok(codex.agentsPath.includes("agents"));
     });
     it("should have rulesType 'file'", () => {
       const codex = platforms.getByName("codex");

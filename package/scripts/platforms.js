@@ -227,6 +227,29 @@ const SUPPORTED = [
           
           if (context.fs.existsSync(jsonPath)) {
             const agentConfig = JSON.parse(context.fs.readFileSync(jsonPath, "utf-8"));
+            
+            // Codex specific config mappings
+            if (agentConfig.codexModel) {
+              agentConfig.model = agentConfig.codexModel;
+              delete agentConfig.codexModel;
+            }
+            if (agentConfig.codexReasoningEffort) {
+              agentConfig.reasoningEffort = agentConfig.codexReasoningEffort;
+              delete agentConfig.codexReasoningEffort;
+            }
+            if (Array.isArray(agentConfig.skills)) {
+              const skillsMap = {};
+              for (const skill of agentConfig.skills) {
+                if (typeof skill === "string") {
+                  skillsMap[skill] = { enabled: true };
+                } else if (skill && skill.name) {
+                  skillsMap[skill.name] = { enabled: true, ...skill };
+                  delete skillsMap[skill.name].name;
+                }
+              }
+              agentConfig.skills = skillsMap;
+            }
+
             context.fs.writeFileSync(tomlPath, context.toml.stringify(agentConfig), "utf-8");
             
             if (platformConfig) {
