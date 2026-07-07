@@ -200,6 +200,10 @@ const SUPPORTED = [
             console.warn(`  ⚠️  Codex config is malformed or null. Skipping agent registration.`);
             return null;
           }
+          if (Array.isArray(config.agents)) {
+            console.warn(`  ⚠️  Codex config uses [[agents]] array which is currently unsupported for auto-sync. Skipping agent registration.`);
+            return null;
+          }
           config.agents = config.agents || {};
           return config;
         } catch (err) {
@@ -218,6 +222,7 @@ const SUPPORTED = [
             
             if (platformConfig) {
               platformConfig.agents[agentName] = {
+                ...(platformConfig.agents[agentName] || {}),
                 description: agentConfig.description || "",
                 model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
                 config_file: `agents/${agentName}/agent.toml`
