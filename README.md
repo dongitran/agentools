@@ -1,11 +1,11 @@
 # agentools
 
-> Universal skill, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync
+> Universal skill, agent, workflow & global rules manager for AI coding assistants with bi-directional GitHub sync
 
 [![npm version](https://badge.fury.io/js/agentools.svg)](https://www.npmjs.com/package/agentools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-One command to manage AI coding skills across Claude Code, Antigravity IDE, Antigravity CLI, Cursor, Windsurf, Codex CLI, and more.
+One command to manage AI coding skills and agents across Claude Code, Antigravity IDE, Antigravity CLI, Cursor, Windsurf, Codex CLI, and more.
 
 ## Quick Start
 
@@ -15,24 +15,24 @@ npm install -g agentools
 # Initialize with your GitHub repo
 agentools init --repo https://github.com/youruser/my-ai-skills.git
 
-# Pull skills from repo and auto-install to platforms
+# Pull skills and agents from repo and auto-install to platforms
 agentools pull
 
 # Push local changes to repo
 agentools push
 ```
 
-## Add External Skills
+## Add External Skills and Agents
 
 ```bash
-# Add skill sources from GitHub
+# Add skill and agent sources from GitHub
 agentools source add https://github.com/vercel-labs/agent-skills.git \
   --name vercel-labs --path skills
 
 agentools source add https://github.com/affaan-m/everything-claude-code.git \
   --name everything-claude-code --path skills
 
-# Sync and auto-install to detected AI coding tools
+# Sync and auto-install skills and agents to detected AI coding tools
 agentools update
 ```
 
@@ -41,13 +41,13 @@ agentools update
 ### GitHub Sync
 ```bash
 agentools init --repo <url>              # Initialize with repository
-agentools push [--message "msg"]         # Push skills to GitHub
-agentools pull                           # Pull from GitHub + auto-install from sync repo
+agentools push [--message "msg"]         # Push skills and agents to GitHub
+agentools pull                           # Pull from GitHub + auto-install skills and agents
 ```
 
 ### Source Management
 ```bash
-agentools source add <url> [options]     # Add custom source
+agentools source add <url> [options]     # Add custom skill/agent source
 agentools source remove <name>           # Remove source
 agentools source list                    # List all sources
 agentools source enable/disable <name>   # Toggle source
@@ -67,11 +67,11 @@ agentools config reset --yes             # Reset to defaults
 ```bash
 agentools update                         # Update from all sources (pull -> sync -> push -> install)
 # Pull/init auto-install uses your local sync repo directly; standalone installs retry bounded Git cache syncs.
-agentools list                           # List installed skills
+agentools list                           # List installed skills and agents
 agentools platforms                      # Show detected platforms
-agentools uninstall                      # Remove installed skills
-agentools sync-external                  # Sync external sources only
-agentools list-external                  # List available external skills
+agentools uninstall                      # Remove installed skills and agents
+agentools sync-external                  # Sync external skill/agent sources only
+agentools list-external                  # List available external skills and agents
 agentools version                        # Show version
 agentools help                           # Show help
 ```

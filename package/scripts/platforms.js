@@ -19,6 +19,7 @@ const SUPPORTED = [
     configDir: ".claude",
     skillsDir: "skills",
     workflowsDir: "workflows",
+    agentsDir: "agents",
     workflowsAsSkills: true,
     commandsDir: "commands",
     rulesDir: "rules",
@@ -28,6 +29,9 @@ const SUPPORTED = [
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    get agentsPath() {
+      return path.join(HOME, this.configDir, this.agentsDir);
     },
     get rulesPath() {
       return path.join(HOME, this.configDir, this.rulesDir);
@@ -184,6 +188,7 @@ const SUPPORTED = [
     displayName: "Codex CLI",
     configDir: ".codex",
     skillsDir: "skills",
+    agentsDir: "agents",
     mcpConfigFile: "config.toml",
     mcpConfigFormat: "toml", // TOML format instead of JSON
     get configPath() {
@@ -191,6 +196,9 @@ const SUPPORTED = [
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
+    },
+    get agentsPath() {
+      return path.join(HOME, this.configDir, this.agentsDir);
     },
     rulesFile: "AGENTS.md",
     rulesType: "file",
@@ -290,6 +298,22 @@ function ensureRulesDir(platform) {
 }
 
 /**
+ * Ensure agents directory exists for a platform
+ * @param {Object} platform - Platform object
+ * @returns {string|null} Agents path or null if not supported
+ */
+function ensureAgentsDir(platform) {
+  if (!platform.agentsPath) {
+    return null;
+  }
+  const agentsPath = platform.agentsPath;
+  if (!fs.existsSync(agentsPath)) {
+    fs.mkdirSync(agentsPath, { recursive: true });
+  }
+  return agentsPath;
+}
+
+/**
  * Get all supported platform names
  * @returns {Array} Array of platform names
  */
@@ -304,6 +328,7 @@ module.exports = {
   ensureSkillsDir,
   ensureWorkflowsDir,
   ensureRulesDir,
+  ensureAgentsDir,
   getAllNames,
   HOME,
 };

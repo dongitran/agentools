@@ -11,8 +11,9 @@
 
 <br/>
 
-> Stop managing AI skills manually across multiple tools.  
-> `agentools` syncs your skills, workflows, and rules from a single GitHub repo — across all your AI coding assistants.
+> Universal skill, agent, workflow & rules manager for AI coding assistants — with bi-directional GitHub sync.
+
+> agentools syncs your skills, agents, workflows, and rules from a single GitHub repo — across all your AI coding assistants.
 
 </div>
 
@@ -20,9 +21,9 @@
 
 ## ✨ Features
 
-- 🔄 **Bi-directional sync** — pull/push skills, workflows, and rules from your own GitHub repo
+- 🔄 **Bi-directional sync** — pull/push skills, agents, workflows, and rules from your own GitHub repo
 - 🌐 **Multi-platform** — Claude Code, Antigravity IDE, Antigravity CLI, Cursor, Windsurf, Codex CLI, GitHub Copilot
-- 🔌 **External sources** — aggregate skills from any public GitHub repo
+- 🔌 **External sources** — aggregate skills and agents from any public GitHub repo
 - 🔐 **Secret management** — sync MCP secrets from Bitwarden vault to your shell environment
 - 📋 **Global rules** — manage AI behavior rules centrally, synced across all platforms
 - 📁 **Local rules** — install project-level rule templates per repository
@@ -44,10 +45,10 @@ npm install -g agentools
 # Initialize with your GitHub repo
 agentools init --repo https://github.com/youruser/my-ai-skills.git
 
-# Pull skills and auto-install to all detected platforms
+# Pull skills/agents and auto-install to all detected platforms
 agentools pull
 
-# Add an external skill source
+# Add an external skill/agent source
 agentools source add https://github.com/vercel-labs/agent-skills.git \
   --name vercel-labs --path skills
 
@@ -65,11 +66,11 @@ agentools update
 | `pull` | Git pull from repo + auto-install to platforms from the local sync repo |
 | `push [--message "msg"]` | Git push to your skills repo |
 | `update` | Pull → sync external skills → push → install |
-| `sync-external` | Sync external sources only |
-| `list-external` | List available external skills |
-| `list` | List installed skills |
-| `platforms` | Show detected platforms |
-| `uninstall` | Remove installed skills |
+| `list` | List installed skills and agents |
+| `uninstall` | Remove installed skills and agents |
+| `sync-external` | Sync external skill/agent sources only |
+| `list-external` | List available external skills and agents |
+| `push [--message "msg"]` | Git push to your skills repo |
 | `source add <url>` | Add custom skill source |
 | `source remove <name>` | Remove skill source |
 | `source list` | List all sources |
@@ -113,16 +114,17 @@ GitHub repo  →  clone/pull  →  ~/.agentools/sync-repo/  →  auto-install wi
 External sources (aggregated automatically)
    ↓
 Install  →  Claude Code / Cursor / Windsurf / Antigravity IDE + CLI / Codex
-            Skills + Workflows + Global Rules + MCP config
+            Skills + Agents + Workflows + Global Rules + MCP config
 ```
 
 Antigravity CLI exposes workflows as slash-command skills, so workflow markdown is installed to `~/.gemini/antigravity-cli/skills/<workflow>/SKILL.md`. On Windows, `~` resolves to `%USERPROFILE%`; the default CLI binary is `%LOCALAPPDATA%\agy\bin\agy.exe`.
 
-**Skill structure in your repo:**
+**Structure in your repo:**
 ```
 my-ai-skills/
 ├── .agents/
 │   ├── skills/          # Your custom skills (SKILL.md per folder)
+│   ├── agents/          # Custom subagents (for Claude Code, Codex CLI, etc.)
 │   ├── workflows/       # Workflow markdown files
 │   └── rules/
 │       ├── global/      # Synced to all platforms automatically

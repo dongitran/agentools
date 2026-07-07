@@ -47,8 +47,24 @@ const REPO_URL = "https://github.com/dongitran/agentools.git";
 const CACHE_DIR = path.join(platforms.HOME, ".agentools-cache");
 const REPO_SKILLS_DIR = path.join(CACHE_DIR, ".agents", "skills");
 const REPO_WORKFLOWS_DIR = path.join(CACHE_DIR, ".agents", "workflows");
+const REPO_AGENTS_DIR = path.join(CACHE_DIR, ".agents", "agents");
 const PACKAGE_SKILLS_DIR = path.join(__dirname, "..", ".agents", "skills");
 const PACKAGE_WORKFLOWS_DIR = path.join(__dirname, "..", ".agents", "workflows");
+const PACKAGE_AGENTS_DIR = path.join(__dirname, "..", ".agents", "agents");
+
+function getUserRepoAgentsDir() {
+  try {
+    if (configManager.configExists()) {
+      const config = configManager.loadConfig();
+      if (config.repository && config.repository.local) {
+        return path.join(config.repository.local, ".agents", "agents");
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
+}
 
 /**
  * Copy directory recursively
@@ -192,6 +208,43 @@ function getAvailableSkills() {
 }
 
 /**
+ * Get list of available agents
+ */
+function getAvailableAgents() {
+  const agents = new Set();
+
+  const dirs = [
+    PACKAGE_AGENTS_DIR,
+    REPO_AGENTS_DIR,
+    getUserRepoAgentsDir()
+  ];
+
+  for (const dir of dirs) {
+    if (dir && fs.existsSync(dir)) {
+      fs.readdirSync(dir).forEach((name) => {
+        const agentPath = path.join(dir, name);
+        const agentFile = path.join(agentPath, "agent.json");
+        if (fs.statSync(agentPath).isDirectory() && fs.existsSync(agentFile)) {
+          try {
+            const agentContent = fs.readFileSync(agentFile, "utf8");
+            const agentData = JSON.parse(agentContent);
+            if (!agentData.name || (!agentData.instructions && !agentData.systemPrompt)) {
+              console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (missing name or instructions)`);
+              return; // Skip adding
+            }
+            agents.add(name);
+          } catch (e) {
+            console.warn(`  ⚠️  Skipping malformed agent config: ${name}/agent.json (${e.message})`);
+          }
+        }
+      });
+    }
+  }
+
+  return Array.from(agents);
+}
+
+/**
  * Get all workflow files from both package and repo cache (merged, package first).
  * Returns array of { name, srcPath } objects.
  */
@@ -294,6 +347,50 @@ function installSkills(skillsPath, options = {}) {
 }
 
 /**
+ * Install available agents to a platform agents directory.
+ */
+function installAgents(agentsPath, options = {}) {
+  const { force = false, skill = null } = options;
+  const results = [];
+  let agentsToInstall = getAvailableAgents();
+
+  if (skill) {
+    if (agentsToInstall.includes(skill)) {
+      agentsToInstall = [skill];
+    } else {
+      agentsToInstall = [];
+    }
+  }
+
+  for (const agentName of agentsToInstall) {
+    let srcPath = path.join(PACKAGE_AGENTS_DIR, agentName);
+    
+    if (!fs.existsSync(srcPath)) {
+      const userRepoAgentsDir = getUserRepoAgentsDir();
+      if (userRepoAgentsDir) {
+        const userPath = path.join(userRepoAgentsDir, agentName);
+        if (fs.existsSync(userPath)) {
+          srcPath = userPath;
+        }
+      }
+    }
+
+    if (!fs.existsSync(srcPath)) {
+      srcPath = path.join(REPO_AGENTS_DIR, agentName);
+    }
+
+    const destPath = path.join(agentsPath, agentName);
+    const copyResult = copyDir(srcPath, destPath, force);
+    results.push({
+      name: agentName,
+      ...copyResult,
+    });
+  }
+
+  return results;
+}
+
+/**
  * Install workflows using the platform's native or skill-based representation.
  */
 function installWorkflows(platform, skillsPath, force = false) {
@@ -337,6 +434,14 @@ function installToPlatform(platform, options = {}) {
   const skills = installSkills(skillsPath, options);
   const workflowResult = installWorkflows(platform, skillsPath, force);
   let mcpServers = null;
+  let agents = [];
+
+  if (platform.agentsPath) {
+    const agentsPath = platforms.ensureAgentsDir(platform);
+    if (agentsPath) {
+      agents = installAgents(agentsPath, options);
+    }
+  }
 
   if (platform.mcpConfigPath) {
     try {
@@ -352,6 +457,7 @@ function installToPlatform(platform, options = {}) {
     workflowsPath: workflowResult.workflowsPath,
     skills,
     workflows: workflowResult.workflows,
+    agents,
     mcpServers,
   };
 }
@@ -385,6 +491,7 @@ function install(options = {}) {
   const details = [];
   let totalSkills = 0;
   let totalWorkflows = 0;
+  let totalAgents = 0;
 
   for (const platformObj of targetPlatforms) {
     try {
@@ -392,6 +499,7 @@ function install(options = {}) {
       details.push(result);
       totalSkills += result.skills.length;
       totalWorkflows += result.workflows.length;
+      if (result.agents) totalAgents += result.agents.length;
     } catch (error) {
       console.error(`   Failed to install to ${platformObj.name}: ${error.message}`);
     }
@@ -403,6 +511,7 @@ function install(options = {}) {
   return {
     skillsCount: totalSkills,
     workflowsCount: totalWorkflows,
+    agentsCount: totalAgents,
     rulesCount: rulesResult.rulesCount,
     platformsCount: details.length,
     details,
@@ -415,33 +524,54 @@ function install(options = {}) {
  */
 function uninstallFromPlatform(platform, skill = null) {
   const skillsPath = platform.skillsPath;
-
-  if (!fs.existsSync(skillsPath)) {
-    return { platform: platform.name, removed: 0 };
-  }
-
   let removed = 0;
-  const ourSkills = platform.workflowsAsSkills
-    ? [...new Set([...getAvailableSkills(), ...getAvailableWorkflows()])]
-    : getAvailableSkills();
+  let removedAgents = 0;
 
-  if (skill) {
-    const skillPath = path.join(skillsPath, skill);
-    if (fs.existsSync(skillPath) && ourSkills.includes(skill)) {
-      fs.rmSync(skillPath, { recursive: true });
-      removed++;
-    }
-  } else {
-    for (const skillName of ourSkills) {
-      const skillPath = path.join(skillsPath, skillName);
-      if (fs.existsSync(skillPath)) {
-        fs.rmSync(skillPath, { recursive: true });
+  if (fs.existsSync(skillsPath)) {
+    const ourSkills = platform.workflowsAsSkills
+      ? [...new Set([...getAvailableSkills(), ...getAvailableWorkflows()])]
+      : getAvailableSkills();
+
+    if (skill) {
+      const skillPath = path.join(skillsPath, skill);
+      if (fs.existsSync(skillPath) && ourSkills.includes(skill)) {
+        fs.rmSync(skillPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
         removed++;
+      }
+    } else {
+      for (const skillName of ourSkills) {
+        const skillPath = path.join(skillsPath, skillName);
+        if (fs.existsSync(skillPath)) {
+          fs.rmSync(skillPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+          removed++;
+        }
       }
     }
   }
 
-  return { platform: platform.name, removed };
+  // Remove agents if supported
+  if (platform.agentsPath && fs.existsSync(platform.agentsPath)) {
+    const ourAgents = getAvailableAgents();
+    
+    // If a specific skill name was provided, maybe it's an agent name too
+    if (skill) {
+      const agentPath = path.join(platform.agentsPath, skill);
+      if (fs.existsSync(agentPath) && ourAgents.includes(skill)) {
+        fs.rmSync(agentPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+        removedAgents++;
+      }
+    } else {
+      for (const agentName of ourAgents) {
+        const agentPath = path.join(platform.agentsPath, agentName);
+        if (fs.existsSync(agentPath)) {
+          fs.rmSync(agentPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+          removedAgents++;
+        }
+      }
+    }
+  }
+
+  return { platform: platform.name, removed, removedAgents };
 }
 
 /**
@@ -464,15 +594,18 @@ function uninstall(options = {}) {
 
   const results = [];
   let totalRemoved = 0;
+  let totalRemovedAgents = 0;
 
   for (const platformObj of targetPlatforms) {
     const result = uninstallFromPlatform(platformObj, skill);
     results.push(result);
     totalRemoved += result.removed;
+    totalRemovedAgents += (result.removedAgents || 0);
   }
 
   return {
     totalRemoved,
+    totalRemovedAgents,
     platformsCount: results.length,
     details: results,
   };
@@ -484,6 +617,7 @@ module.exports = {
   syncRepo,
   isRepoCached,
   getAvailableSkills,
+  getAvailableAgents,
   getAvailableWorkflows,
   copyDir,
   isGitRepository,
@@ -491,8 +625,10 @@ module.exports = {
   REPO_URL,
   REPO_SKILLS_DIR,
   REPO_WORKFLOWS_DIR,
+  REPO_AGENTS_DIR,
   PACKAGE_SKILLS_DIR,
   PACKAGE_WORKFLOWS_DIR,
+  PACKAGE_AGENTS_DIR,
   GIT_SYNC_TIMEOUT_MS,
   GIT_SYNC_MAX_ATTEMPTS,
 };

@@ -1,6 +1,6 @@
 # AI Agent Config
 
-> CLI tool to manage AI coding skills, workflows & global rules across platforms (Claude Code, Antigravity IDE/CLI, Cursor, Windsurf, Codex CLI)
+> CLI tool to manage AI coding skills, agents, workflows & global rules across platforms (Claude Code, Antigravity IDE/CLI, Cursor, Windsurf, Codex CLI)
 
 **Version:** 2.11.0
 **NPM:** https://www.npmjs.com/package/agentools
@@ -33,12 +33,13 @@ agentools/
 │   └── package.json            # v2.11.0
 ├── .agents/
 │   ├── skills/                 # 15 bundled skills (synced from external sources)
+│   ├── agents/                 # Custom subagents (synced from external sources)
 │   ├── workflows/              # 5 workflows (brainstorm, create-pr, release-notes, sync-bitwarden-to-github, update-skills)
 │   ├── rules/
 │   │   ├── global/             # Global .md rules synced across platforms
 │   │   └── local/              # Local rule templates (project-level, installed via workflow/CLI)
 │   ├── mcp-servers/            # MCP server configs (config.json per server)
-│   └── external-skills.json    # External skill source definitions
+│   └── external-skills.json    # External skill and agent source definitions
 ├── .github/workflows/
 │   ├── ci.yml                  # CI: test -> lint -> build -> publish (on package/ changes)
 │   └── sync-external.yml       # Weekly auto-sync external skills (creates and auto-merges PR)
@@ -51,6 +52,7 @@ agentools/
 ## Key Concepts
 
 - **Skills**: Folders with `SKILL.md` that AI platforms auto-discover
+- **Agents**: Custom subagents with models (for Claude Code, Codex, etc.)
 - **Global Rules**: `.md` files in `.agents/rules/global/` synced to platform-specific rule files/folders
 - **Local Rules**: Project-level rule templates in `.agents/rules/local/` — installed via workflow or `agentools rules` CLI
 - **MCP Servers**: Configs in `.agents/mcp-servers/<name>/config.json` with `bitwardenEnv` for secret resolution
@@ -65,18 +67,18 @@ agentools/
 |---------|-------------|
 | `init --repo <url>` | Initialize config, clone repo, and install |
 | `push` / `pull` | Git push/pull with sync-repo (`pull` auto-installs) |
-| `update` | Pull -> sync external skills -> push -> auto-install |
-| `list` | List installed skills |
+| `update` | Pull -> sync external skills/agents -> push -> auto-install |
+| `list` | List installed skills and agents |
 | `platforms` | Show detected platforms |
-| `uninstall` | Remove installed skills |
-| `source add/remove/list/enable/disable/info` | Manage skill sources |
+| `uninstall` | Remove installed skills and agents |
+| `source add/remove/list/enable/disable/info` | Manage skill and agent sources |
 | `config get/set/edit/validate/export/import/reset` | Manage config |
 | `secrets sync` | Sync MCP secrets from Bitwarden vault |
 | `rules list` | List available local rules from rule library |
 | `rules add <name>` | Install a local rule to current project (.claude/rules/ + .agents/rules/) |
 | `rules status` | Show rules installed in current project |
 | `sync-external` | Alias for `update` |
-| `list-external` | List available external skills |
+| `list-external` | List available external skills and agents |
 | `version` / `help` | Show version or help |
 
 ## Supported Platforms
@@ -202,18 +204,18 @@ EOF
 
 ---
 
-## External Skills Sync
+## External Skills & Agents Sync
 
 **File:** `.github/workflows/sync-external.yml`
 **Triggers:** Weekly (Sunday 00:00 UTC) or manual
 
-Sources defined in `.agents/external-skills.json` (5 sources, 26 skills total).
+Sources defined in `.agents/external-skills.json` (e.g., 5 sources, 26 skills total, plus agents).
 
 The `update` command flow:
 1. Pull sync-repo from GitHub
 2. Clone/update external source repos to cache
-3. Copy skills from cache to sync-repo
+3. Copy skills and agents from cache to sync-repo
 4. Commit and push sync-repo
-5. Auto-install skills to detected AI coding platforms
+5. Auto-install skills and agents to detected AI coding platforms
 
-The repository workflow copies configured external skills into `.agents/skills`, creates or updates the `sync-external-skills` pull request when generated content changes, then merges that pull request automatically when repository permissions allow it.
+The repository workflow copies configured external skills and agents into `.agents/skills` and `.agents/agents`, creates or updates the `sync-external-skills` pull request when generated content changes, then merges that pull request automatically when repository permissions allow it.

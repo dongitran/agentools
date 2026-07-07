@@ -13,6 +13,19 @@ const CACHE_DIR = path.join(require("os").homedir(), ".agentools-external-cache"
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const REPO_EXTERNAL_CONFIG = path.join(REPO_ROOT, ".agents", "external-skills.json");
 const REPO_EXTERNAL_TARGET_DIR = path.join(REPO_ROOT, ".agents", "skills");
+const REPO_EXTERNAL_AGENTS_DIR = path.join(REPO_ROOT, ".agents", "agents");
+
+/**
+ * Validate that a path does not escape its intended base directory
+ */
+function getSafePath(baseDir, userInput) {
+  const resolvedPath = path.resolve(baseDir, userInput);
+  const safeBase = path.resolve(baseDir) + path.sep;
+  if (!resolvedPath.startsWith(safeBase) && resolvedPath !== path.resolve(baseDir)) {
+    throw new Error(`Path Traversal attempt detected: ${userInput}`);
+  }
+  return resolvedPath;
+}
 
 /**
  * Load repository-maintained external sources for CI/repo maintenance.
@@ -30,6 +43,7 @@ function loadRepositoryConfig() {
   return {
     sources: data.sources.filter((source) => source.enabled !== false),
     targetDir: REPO_EXTERNAL_TARGET_DIR,
+    agentsDir: REPO_EXTERNAL_AGENTS_DIR,
   };
 }
 
@@ -49,10 +63,14 @@ function loadConfig() {
 
     // Target directory is the user's configured repository
     const targetDir = config.repository && config.repository.local
-      ? path.join(config.repository.local, ".agents/skills")
-      : path.join(require("os").homedir(), ".agentools/skills");
+      ? path.join(config.repository.local, ".agents", "skills")
+      : path.join(require("os").homedir(), ".agentools", "skills");
 
-    return { sources, targetDir };
+    const agentsDir = config.repository && config.repository.local
+      ? path.join(config.repository.local, ".agents", "agents")
+      : path.join(require("os").homedir(), ".agentools", "agents");
+
+    return { sources, targetDir, agentsDir };
   } catch (error) {
     console.error("⚠️  Failed to load user config:", error.message);
     console.log("💡 Run 'agentools init' to create config");
@@ -66,15 +84,26 @@ function loadConfig() {
 function syncRepo(source) {
   const repoDir = path.join(CACHE_DIR, source.name);
 
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.error(`   Failed to create cache directory: ${err.message}`);
+    return false;
   }
 
   try {
     if (fs.existsSync(repoDir)) {
       console.log(`   Updating ${source.name}...`);
-      spawnSync("git", ["-C", repoDir, "fetch", "origin"], { stdio: "pipe" });
+      const fetchResult = spawnSync("git", ["-C", repoDir, "fetch", "origin"], { stdio: "pipe" });
+      if (fetchResult.error || fetchResult.status !== 0) {
+        throw new Error(`git fetch failed: ${fetchResult.stderr?.toString() || fetchResult.error?.message}`);
+      }
       const resetResult = spawnSync("git", ["-C", repoDir, "reset", "--hard", `origin/${source.branch}`], { stdio: "pipe" });
+      if (resetResult.error) {
+        throw new Error(`git reset failed to spawn: ${resetResult.error.message}`);
+      }
       if (resetResult.status !== 0) {
         throw new Error(resetResult.stderr?.toString() || "git reset failed");
       }
@@ -83,7 +112,12 @@ function syncRepo(source) {
       const cloneResult = spawnSync("git", ["clone", "--branch", source.branch, source.repo, repoDir], {
         stdio: "pipe",
       });
+      if (cloneResult.error) {
+        try { fs.rmSync(repoDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch (e) {}
+        throw new Error(`git clone failed to spawn: ${cloneResult.error.message}`);
+      }
       if (cloneResult.status !== 0) {
+        try { fs.rmSync(repoDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch (e) {}
         throw new Error(cloneResult.stderr?.toString() || "git clone failed");
       }
     }
@@ -108,14 +142,19 @@ function copySkill(sourcePath, targetPath, force = false, excludePaths = []) {
 
   // Remove existing directory if force
   if (fs.existsSync(targetPath) && force) {
-    fs.rmSync(targetPath, { recursive: true });
+    try {
+      fs.rmSync(targetPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    } catch (error) {
+      return { copied: false, reason: `failed to remove existing: ${error.message}` };
+    }
   }
 
   // Create target directory
   fs.mkdirSync(targetPath, { recursive: true });
 
   // Copy all files recursively, excluding specified paths
-  copyDirRecursive(sourcePath, targetPath, excludePaths);
+  const excludeSet = new Set(excludePaths);
+  copyDirRecursive(sourcePath, targetPath, excludeSet);
 
   return { copied: true };
 }
@@ -123,12 +162,12 @@ function copySkill(sourcePath, targetPath, force = false, excludePaths = []) {
 /**
  * Recursively copy directory
  */
-function copyDirRecursive(src, dest, excludePaths = []) {
+function copyDirRecursive(src, dest, excludeSet) {
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
-    // Check if this entry should be excluded
-    if (excludePaths.includes(entry.name)) {
+    // Check if this entry should be excluded (including hardcoded .git exclusion)
+    if (entry.name === ".git" || excludeSet.has(entry.name)) {
       continue;
     }
 
@@ -139,7 +178,7 @@ function copyDirRecursive(src, dest, excludePaths = []) {
       if (!fs.existsSync(destPath)) {
         fs.mkdirSync(destPath, { recursive: true });
       }
-      copyDirRecursive(srcPath, destPath, excludePaths);
+      copyDirRecursive(srcPath, destPath, excludeSet);
     } else {
       fs.copyFileSync(srcPath, destPath);
     }
@@ -156,6 +195,7 @@ function syncAll(options = {}) {
 
   const config = loadConfig();
   const targetDir = config.targetDir;
+  const agentsDir = config.agentsDir;
   let sources = config.sources;
 
   // Filter by source if specified
@@ -186,31 +226,72 @@ function syncAll(options = {}) {
     results.synced++;
 
     const repoDir = path.join(CACHE_DIR, src.name);
-    let skills = src.skills;
+    let skills = src.skills || [];
+    let agents = src.agents || [];
 
-    // Filter by skill if specified
     if (skill) {
       skills = skills.filter((s) => s.name === skill);
-      if (skills.length === 0) {
-        console.log(`   ⚠️  Skill "${skill}" not found in ${src.name}`);
+      agents = agents.filter((a) => a.name === skill);
+      if (skills.length === 0 && agents.length === 0) {
+        console.log(`   ⚠️  Skill/Agent "${skill}" not found in ${src.name}`);
         continue;
       }
     }
 
     // Copy each skill
     for (const skillDef of skills) {
-      const sourcePath = path.join(repoDir, skillDef.path);
-      const targetPath = path.join(targetDir, skillDef.name);
-      const excludePaths = skillDef.excludePaths || [];
+      if (!skillDef.name || !skillDef.path) continue;
+      
+      try {
+        const safeName = path.basename(skillDef.name);
+        if (!safeName || safeName === "." || safeName === "..") continue;
 
-      const result = copySkill(sourcePath, targetPath, true, excludePaths);
+        const sourcePath = getSafePath(repoDir, skillDef.path);
+        const targetPath = getSafePath(targetDir, safeName);
+        const excludePaths = skillDef.excludePaths || [];
 
-      if (result.copied) {
-        console.log(`   ✓ ${skillDef.name}`);
-        results.copied++;
-      } else {
-        console.log(`   ⊗ ${skillDef.name} (${result.reason})`);
-        results.skipped++;
+        const result = copySkill(sourcePath, targetPath, true, excludePaths);
+
+        if (result.copied) {
+          console.log(`   ✓ ${skillDef.name}`);
+          results.copied++;
+        } else {
+          console.log(`   ⊗ ${skillDef.name} (${result.reason})`);
+          results.skipped++;
+        }
+      } catch (error) {
+        console.error(`   ⊗ Skill: ${skillDef.name} (Security Error: ${error.message})`);
+        results.failed++;
+      }
+    }
+
+    // Sync agents if they exist
+    if (agents.length > 0) {
+      console.log(`   -- Syncing agents --`);
+    }
+    for (const agentDef of agents) {
+      if (!agentDef.name || !agentDef.path) continue;
+
+      try {
+        const safeName = path.basename(agentDef.name);
+        if (!safeName || safeName === "." || safeName === "..") continue;
+
+        const sourcePath = getSafePath(repoDir, agentDef.path);
+        const targetPath = getSafePath(agentsDir, safeName);
+        const excludePaths = agentDef.excludePaths || [];
+
+        const result = copySkill(sourcePath, targetPath, true, excludePaths);
+
+        if (result.copied) {
+          console.log(`   ✓ Agent: ${agentDef.name}`);
+          results.copied++;
+        } else {
+          console.log(`   ⊗ Agent: ${agentDef.name} (${result.reason})`);
+          results.skipped++;
+        }
+      } catch (error) {
+        console.error(`   ⊗ Agent: ${agentDef.name} (Security Error: ${error.message})`);
+        results.failed++;
       }
     }
 
@@ -235,10 +316,19 @@ function list() {
     console.log(`  License: ${source.license}`);
     console.log(`  Skills:`);
 
-    for (const skill of source.skills) {
+    for (const skill of source.skills || []) {
       const targetPath = path.join(targetDir, skill.name);
       const installed = fs.existsSync(targetPath) ? "✓ installed" : "";
       console.log(`    • ${skill.name} ${installed}`);
+    }
+
+    if (source.agents && source.agents.length > 0) {
+      console.log(`  Agents:`);
+      for (const agent of source.agents) {
+        const targetPath = path.join(config.agentsDir, agent.name);
+        const installed = fs.existsSync(targetPath) ? "✓ installed" : "";
+        console.log(`    • ${agent.name} ${installed}`);
+      }
     }
 
     console.log("");

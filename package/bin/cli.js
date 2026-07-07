@@ -39,14 +39,14 @@ Usage: agentools <command> [options]
   config reset                Reset to default config
 
 🔧 Installation & Sync:
-  update [opts]               Update all skills from sources
-  list                        List installed skills
-  uninstall [opts]            Uninstall skills from platforms
+  update [opts]               Update all skills and agents from sources
+  list                        List installed skills and agents
+  uninstall [opts]            Uninstall skills and agents from platforms
 
 🔄 GitHub Sync:
   init [--repo <url>]         Initialize config and clone repository
-  push [--message <msg>]      Push skills to GitHub
-  pull                        Pull skills from GitHub
+  push [--message <msg>]      Push skills and agents to GitHub
+  pull                        Pull skills and agents from GitHub
 
 🔐 Secret Management:
   secrets sync                Sync MCP secrets from Bitwarden
@@ -76,7 +76,7 @@ Usage: agentools <command> [options]
     --branch main \\
     --name company-skills
 
-  # Update all skills
+  # Update all skills and agents
   agentools update
 
   # Export your config to share with team
@@ -125,6 +125,13 @@ function listSkills() {
 
   const skills = installer.getAvailableSkills();
   const workflows = installer.getAvailableWorkflows();
+  
+  let agents = [];
+  try {
+    if (typeof installer.getAvailableAgents === 'function') {
+      agents = installer.getAvailableAgents();
+    }
+  } catch (e) {}
 
   console.log("Skills:");
   if (skills.length === 0) {
@@ -148,6 +155,13 @@ function listSkills() {
   } else {
     workflows.forEach((wf) => {
       console.log(`  • ${wf}`);
+    });
+  }
+
+  if (agents.length > 0) {
+    console.log("\nAgents:");
+    agents.forEach((ag) => {
+      console.log(`  • ${ag}`);
     });
   }
 
@@ -210,7 +224,7 @@ function getArgValue(args, flag) {
   return null;
 }
 
-function init(args) {
+async function init(args) {
   console.log("\n🚀 Initializing AI Agent Config...\n");
 
   const force = args.includes("--force");
@@ -263,8 +277,8 @@ function init(args) {
     console.log("✅ Repository configured!\n");
 
     // Auto-install from the freshly cloned sync repo without a second network cache refresh
-    console.log("📥 Auto-installing skills + MCP servers...\n");
-    install(["--force", "--no-sync"]);
+    console.log("📥 Auto-installing skills, agents + MCP servers...\n");
+    await install(["--force", "--no-sync"]);
   }
 
   const detected = platforms.detectAll();
@@ -639,7 +653,7 @@ function configReset(args) {
 }
 
 // Installation & Sync Commands
-function install(args) {
+async function install(args) {
   console.log("\n📥 Installing skills...\n");
 
   const options = {
@@ -661,10 +675,11 @@ function install(args) {
   try {
     const result = installer.install(options);
 
-    if (result.skillsCount > 0 || result.workflowsCount > 0) {
+    if (result.skillsCount > 0 || result.workflowsCount > 0 || result.agentsCount > 0) {
       const parts = [];
       if (result.skillsCount > 0) parts.push(`${result.skillsCount} skill(s)`);
       if (result.workflowsCount > 0) parts.push(`${result.workflowsCount} workflow(s)`);
+      if (result.agentsCount > 0) parts.push(`${result.agentsCount} agent(s)`);
       if (result.rulesCount > 0) parts.push(`${result.rulesCount} rule(s)`);
 
       // Count MCP servers across all platforms
@@ -691,6 +706,13 @@ function install(args) {
             console.log(`      • ${w.name} ${status}`);
           });
         }
+        if (d.agents && d.agents.length > 0) {
+          console.log(`    Agents: ${d.agentsPath || `${d.agents.length} installed`}`);
+          d.agents.forEach((a) => {
+            const status = a.skipped > 0 ? "(skipped)" : "";
+            console.log(`      • ${a.name} ${status}`);
+          });
+        }
         if (d.mcpServers && d.mcpServers.servers.length > 0) {
           console.log(`    MCP Servers: ${d.mcpServers.added} added, ${d.mcpServers.skipped} skipped`);
           d.mcpServers.servers.forEach((name) => {
@@ -712,7 +734,8 @@ function install(args) {
 
       // Hint about secrets sync if MCP servers were installed
       if (mcpTotal > 0) {
-        console.log("\n💡 Run 'agentools secrets sync' to resolve Bitwarden secrets");
+        console.log("\n💡 Auto-syncing Bitwarden secrets for newly installed MCP servers...");
+        await secretsSync();
       }
     } else {
       console.log("\n⚠️  No skills or workflows installed.");
@@ -725,7 +748,7 @@ function install(args) {
   console.log("");
 }
 
-function update(args) {
+async function update(args) {
   console.log("\n🔄 Updating skills from all sources...\n");
 
   const options = {
@@ -759,8 +782,8 @@ function update(args) {
     const result = externalSync.syncAll(options);
 
     console.log(`\n✓ Updated from ${result.synced} source(s)`);
-    console.log(`  Copied: ${result.copied} skill(s)`);
-    console.log(`  Skipped: ${result.skipped} skill(s)`);
+    console.log(`  Copied: ${result.copied} item(s)`);
+    console.log(`  Skipped: ${result.skipped} item(s)`);
     if (result.failed > 0) {
       console.log(`  Failed: ${result.failed} source(s)`);
     }
@@ -782,7 +805,7 @@ function update(args) {
 
     // 4. Auto-install
     console.log("\n📥 Auto-installing skills + MCP servers...\n");
-    install(["--force", "--no-sync"]);
+    await install(["--force", "--no-sync"]);
 
     console.log("");
   } catch (error) {
@@ -1177,7 +1200,7 @@ async function secretsSync() {
     // Single-word commands
     switch (command) {
       case "init":
-        init(args.slice(1));
+        await init(args.slice(1));
         break;
       case "migrate":
         migrateCmd(args.slice(1));
@@ -1189,7 +1212,7 @@ async function secretsSync() {
         pull(args.slice(1));
         break;
       case "update":
-        update(args.slice(1));
+        await update(args.slice(1));
         break;
 
       case "sync-external":

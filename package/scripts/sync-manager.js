@@ -184,6 +184,12 @@ class SyncManager {
                 execSync("git add .agents/rules/", { cwd: this.repoPath, stdio: "pipe" });
             }
 
+            // Add Agents
+            const agentsDir = path.join(this.repoPath, ".agents/agents");
+            if (fs.existsSync(agentsDir)) {
+                execSync("git add .agents/agents/", { cwd: this.repoPath, stdio: "pipe" });
+            }
+
             // Add skills individually, excluding bundled ones
             const skillsDir = path.join(this.repoPath, ".agents/skills");
             const bundledSkills = ["agentools", "config-manager"];
@@ -282,7 +288,10 @@ class SyncManager {
         const lines = output.split("\n");
         return lines
             .filter((line) => line.includes("CONFLICT"))
-            .map((line) => line.replace("CONFLICT (content): Merge conflict in ", "").trim())
+            .map((line) => {
+                const match = line.match(/CONFLICT \([^)]+\):\s+(?:Merge conflict in\s+)?([^\s]+)/);
+                return match ? match[1].trim() : line.trim();
+            })
             .filter(Boolean);
     }
 
