@@ -5,11 +5,6 @@ description: Start or delegate work to a configured project subagent and ensure 
 
 # Subagent Launcher
 
-## Purpose
-
-1. You MUST check whether a suitable global agent config already exists.
-2. If it does not exist, rely on the current context to create appropriate instructions for the agent before launching.
-
 ## Selection Workflow
 
 1. Check what global agents are currently available. If none are suitable, use the current instruction context to identify other available subagents.
@@ -32,8 +27,6 @@ For every required skill listed by the resolved subagent config:
 4. Attach the resolved skill to the subagent as a platform-native skill item when supported.
 5. If native skill attachment is unavailable, explicitly instruct the subagent to read and follow the resolved skill before acting.
 6. Do not make the main agent read full skill bodies unless the platform requires the content to be embedded in the subagent prompt.
-
-
 
 ## Antigravity
 
