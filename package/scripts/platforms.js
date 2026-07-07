@@ -220,6 +220,38 @@ const SUPPORTED = [
           return null;
         }
       },
+      cleanupAgents: (agentsToInstall, platformConfig, context, agentsPath) => {
+        let mutated = false;
+        
+        // 1. Clean up obsolete .toml files
+        if (context.fs.existsSync(agentsPath)) {
+          const files = context.fs.readdirSync(agentsPath);
+          for (const file of files) {
+            if (file.endsWith(".toml")) {
+              const agentName = file.replace(".toml", "");
+              if (!agentsToInstall.includes(agentName)) {
+                try {
+                  context.fs.unlinkSync(context.path.join(agentsPath, file));
+                } catch (e) {
+                  console.warn(`  ⚠️  Failed to clean up Codex agent file ${file}: ${e.message}`);
+                }
+              }
+            }
+          }
+        }
+        
+        // 2. Clean up obsolete entries from config.toml
+        if (platformConfig && platformConfig.agents) {
+          for (const key of Object.keys(platformConfig.agents)) {
+            if (!agentsToInstall.includes(key)) {
+              delete platformConfig.agents[key];
+              mutated = true;
+            }
+          }
+        }
+        
+        return mutated;
+      },
       onAgentInstalled: (agentName, destPath, platformConfig, context) => {
         try {
           const jsonPath = context.path.join(destPath, "agent.json");

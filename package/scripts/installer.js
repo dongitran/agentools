@@ -320,23 +320,35 @@ function installSkills(skillsPath, options = {}) {
     }
   } else if (fs.existsSync(skillsPath)) {
     // Cleanup orphaned managed skills
-    const existingDirs = fs.readdirSync(skillsPath, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    const existingDirs = fs.readdirSync(skillsPath)
+      .filter(name => {
+        try {
+          return fs.statSync(path.join(skillsPath, name)).isDirectory();
+        } catch (e) {
+          return false;
+        }
+      });
       
+    // Note: Workflows installed as skills are managed by copyWorkflowsAsSkills separately,
+    // but they reside in the same skillsPath. We keep them here to prevent deleting them.
     const workflowsToKeep = getAvailableWorkflows().map(w => w.replace(".md", ""));
     const allManagedToKeep = [...skillsToInstall, ...workflowsToKeep];
 
     for (const dirName of existingDirs) {
+      // Prevent deleting custom skills that coincidentally match deprecated names by strictly requiring the managed marker
+      // UNLESS they are specifically the two deprecated ones which we know we shipped without markers.
       if (!allManagedToKeep.includes(dirName)) {
         const dirPath = path.join(skillsPath, dirName);
         const managedMarker = path.join(dirPath, ".agentools-managed");
         
-        // Backward compatibility for known recently deprecated skills
         const DEPRECATED_SKILLS = ["subagent-launcher", "subagent-resolution"];
         
         if (fs.existsSync(managedMarker) || DEPRECATED_SKILLS.includes(dirName)) {
-           fs.rmSync(dirPath, { recursive: true, force: true });
+           try {
+             fs.rmSync(dirPath, { recursive: true, force: true });
+           } catch (e) {
+             console.warn(`  ⚠️  Failed to clean up orphaned skill ${dirName}: ${e.message}`);
+           }
         }
       }
     }
@@ -393,9 +405,14 @@ function installAgents(agentsPath, options = {}, platform = null) {
     }
   } else if (fs.existsSync(agentsPath)) {
     // Cleanup orphaned managed agents
-    const existingDirs = fs.readdirSync(agentsPath, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    const existingDirs = fs.readdirSync(agentsPath)
+      .filter(name => {
+        try {
+          return fs.statSync(path.join(agentsPath, name)).isDirectory();
+        } catch (e) {
+          return false;
+        }
+      });
       
     for (const dirName of existingDirs) {
       if (!agentsToInstall.includes(dirName)) {
@@ -403,7 +420,11 @@ function installAgents(agentsPath, options = {}, platform = null) {
         const managedMarker = path.join(dirPath, ".agentools-managed");
         
         if (fs.existsSync(managedMarker)) {
-           fs.rmSync(dirPath, { recursive: true, force: true });
+           try {
+             fs.rmSync(dirPath, { recursive: true, force: true });
+           } catch (e) {
+             console.warn(`  ⚠️  Failed to clean up orphaned agent ${dirName}: ${e.message}`);
+           }
         }
       }
     }
@@ -416,6 +437,11 @@ function installAgents(agentsPath, options = {}, platform = null) {
   /* c8 ignore start */
   if (platform && platform.hooks && platform.hooks.preInstallAgents) {
     platformConfig = platform.hooks.preInstallAgents(platform, platformContext);
+  }
+  
+  if (!skill && platform && platform.hooks && platform.hooks.cleanupAgents) {
+    const mutated = platform.hooks.cleanupAgents(agentsToInstall, platformConfig, platformContext, agentsPath);
+    if (mutated) configUpdated = true;
   }
   /* c8 ignore stop */
 
@@ -484,6 +510,27 @@ function installWorkflows(platform, skillsPath, force = false) {
       workflows: copyWorkflowsAsSkills(skillsPath, force),
     };
   }
+  
+  // Cleanup orphaned natively installed workflows
+  const MANAGED_WORKFLOW_HEADER = "<!-- @agentools-managed -->";
+  if (fs.existsSync(workflowsPath)) {
+    const existingFiles = fs.readdirSync(workflowsPath).filter(f => f.endsWith(".md"));
+    const activeWorkflowFiles = workflowFiles.map(wf => wf.name);
+    
+    for (const file of existingFiles) {
+      if (!activeWorkflowFiles.includes(file)) {
+        const filePath = path.join(workflowsPath, file);
+        try {
+          const content = fs.readFileSync(filePath, "utf-8");
+          if (content.includes(MANAGED_WORKFLOW_HEADER)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (e) {
+          console.warn(`  ⚠️  Failed to clean up orphaned workflow ${file}: ${e.message}`);
+        }
+      }
+    }
+  }
 
   const workflows = [];
   for (const { name: workflowFile, srcPath } of workflowFiles) {
@@ -493,7 +540,12 @@ function installWorkflows(platform, skillsPath, force = false) {
     if (fs.existsSync(destPath) && !force) {
       workflows.push({ name, skipped: 1, copied: 0 });
     } else {
-      fs.copyFileSync(srcPath, destPath);
+      const content = fs.readFileSync(srcPath, "utf-8");
+      if (!content.includes(MANAGED_WORKFLOW_HEADER)) {
+        fs.writeFileSync(destPath, `${MANAGED_WORKFLOW_HEADER}\n${content}`, "utf-8");
+      } else {
+        fs.writeFileSync(destPath, content, "utf-8");
+      }
       workflows.push({ name, skipped: 0, copied: 1 });
     }
   }

@@ -154,6 +154,19 @@ function loadConfig() {
 
     return config;
   } catch (error) {
+    const backupPath = `${CONFIG_FILE}.backup`;
+    if (fs.existsSync(backupPath)) {
+      console.warn("⚠️  Config file corrupted, attempting to recover from backup...");
+      try {
+        const backupData = fs.readFileSync(backupPath, "utf-8");
+        const config = JSON.parse(backupData);
+        // Recover the main file immediately
+        fs.writeFileSync(CONFIG_FILE, backupData, "utf-8");
+        return config;
+      } catch (backupError) {
+        console.warn("⚠️ Backup is also corrupted. Resetting to default.");
+      }
+    }
     console.warn(`⚠️  Error loading config file (${error.message}), returning default config.`);
     return createDefaultConfig();
   }
@@ -175,7 +188,9 @@ function saveConfig(config) {
   }
 
   // Write config
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
+  const tmpFile = `${CONFIG_FILE}.tmp`;
+  fs.writeFileSync(tmpFile, JSON.stringify(config, null, 2), "utf-8");
+  fs.renameSync(tmpFile, CONFIG_FILE);
 }
 
 /**

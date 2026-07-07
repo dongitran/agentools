@@ -96,7 +96,7 @@ class SyncManager {
                 const conflicts = this.parseConflicts(errorMsg);
                 return { pulled: false, conflicts };
             }
-            return { pulled: false, reason: error.message };
+            return { pulled: false, reason: errorMsg || error.message };
         }
     }
 
@@ -158,7 +158,7 @@ class SyncManager {
             });
             const diff = diffResult.stdout || "";
 
-            return diff.trim().split("\n").filter(Boolean);
+            return diff.trim().split(/\r?\n/).filter(Boolean);
         } catch (error) {
             return [];
         }
@@ -285,11 +285,11 @@ class SyncManager {
      * Parse git conflicts
      */
     parseConflicts(output) {
-        const lines = output.split("\n");
+        const lines = output.split(/\r?\n/);
         return lines
             .filter((line) => line.includes("CONFLICT"))
             .map((line) => {
-                const match = line.match(/CONFLICT \([^)]+\):\s+(?:Merge conflict in\s+)?([^\s]+)/);
+                const match = line.match(/CONFLICT \([^)]+\):\s+(?:Merge conflict in\s+)?(.+)/);
                 return match ? match[1].trim() : line.trim();
             })
             .filter(Boolean);

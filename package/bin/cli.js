@@ -891,14 +891,14 @@ function push(args) {
 /**
  * Pull skills from GitHub repository
  */
-function pull(args) {
+async function pull(args) {
   console.log("\n⬇️  Pulling from GitHub...\n");
 
   const config = configManager.loadConfig();
 
   if (!config.repository.url) {
     console.error("❌ No repository configured");
-    console.log("\n   Run: agentools init <url>\n");
+    console.log("\n   Run: agentools init --repo <url>\n");
     process.exit(1);
   }
 
@@ -916,7 +916,7 @@ function pull(args) {
 
       if (!noInstall) {
         console.log("📥 Auto-installing skills + MCP servers...\n");
-        install(["--force", "--no-sync"]); // Install from freshly pulled sync repo without network cache refresh
+        await install(["--force", "--no-sync"]); // Install from freshly pulled sync repo without network cache refresh
       }
     } else {
       console.log(`⚠️  ${result.reason || "Pull failed"}`);
@@ -925,8 +925,8 @@ function pull(args) {
         console.log("\n   Conflicts in:");
         result.conflicts.forEach((f) => console.log(`     - ${f}`));
         console.log("\n   Resolve manually and commit.\n");
-        process.exit(1);
       }
+      process.exit(1);
     }
   } catch (error) {
     console.error(`❌ Pull failed: ${error.message}\n`);
@@ -1209,7 +1209,7 @@ async function secretsSync() {
         push(args.slice(1));
         break;
       case "pull":
-        pull(args.slice(1));
+        await pull(args.slice(1));
         break;
       case "update":
         await update(args.slice(1));
