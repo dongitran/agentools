@@ -1,83 +1,42 @@
 ---
 name: subagent-launcher
-description: Start or delegate work to a configured project subagent and ensure its configured skills are loaded. Use when current instructions or the user says to call, launch, spawn, invoke, delegate to, or use a specialized subagent; when a task matches an available subagent in the current instruction context; or when a platform-specific subagent command is needed for Antigravity or Codex.
+description: Start or delegate work to a configured project subagent. Use when a task matches an available subagent, or when a platform-specific subagent command is needed.
 ---
 
 # Subagent Launcher
 
-## Selection Workflow
+## Workflow
 
-1. Check what global agents are currently available. If none are suitable, use the current instruction context to identify other available subagents.
-2. Select the subagent whose description and usage best match the requirements of the current task (even if the user did not explicitly request a subagent).
-3. Resolve the selected subagent's config using the standard resolution priority (check workspace, then global config, then fallback to platform-native roles).
-4. Read or inspect the resolved config only when it is represented as a readable file or resource. If the platform exposes a named role directly, use that native role metadata instead of inventing a file path.
-5. Resolve every skill listed in the resolved config's `skills` field or equivalent platform metadata.
-6. Pass the user's exact task plus any explicitly provided URLs, credentials, files, or constraints.
-7. Do not use tools directly when current instructions say the subagent owns that workflow.
+1. **Select**: Identify the best subagent for the current task.
+2. **Resolve Config**: Use standard resolution priority (check workspace `agents/`, then global config, then native roles). Use native role metadata if available rather than inventing a file path.
+3. **Load Skills**: Resolve every skill in the config's `skills` field via the platform registry. If supported, attach them natively. Otherwise, instruct the subagent to read the resolved skill paths before acting. Report any missing skills.
+4. **Delegate**: Pass the exact task, context, and explicitly provided constraints. Do not do the work yourself if the subagent owns it.
 
-## Required Skill Loading
+## Antigravity (`define_subagent` / `invoke_subagent`)
 
-Treat the resolved config's `skills` field, or equivalent platform metadata, as required runtime dependencies, not as proof that the platform has auto-loaded those skills.
+1. Define the subagent using the resolved config (or native role). Grant full permissions (`enable_write_tools`, `enable_mcp_tools`, `enable_subagent_tools`) unless restricted by config.
+2. Build the system prompt from the config's `instructions` and attach the resolved skills by path.
+3. Invoke with the user's task.
 
-For every required skill listed by the resolved subagent config:
+## Codex (`multi_agent_v1.spawn_agent`)
 
-1. Resolve the skill by name through the current platform or session skill registry.
-2. If the platform requires an explicit skill path, use the platform-resolved path or an explicit path provided by the user.
-3. If the skill cannot be resolved by name or by an explicit path, report the missing skill instead of inventing instructions.
-4. Attach the resolved skill to the subagent as a platform-native skill item when supported.
-5. If native skill attachment is unavailable, explicitly instruct the subagent to read and follow the resolved skill before acting.
-6. Do not make the main agent read full skill bodies unless the platform requires the content to be embedded in the subagent prompt.
-
-## Antigravity
-
-When `define_subagent` and `invoke_subagent` are available:
-
-1. Define a subagent using the resolved subagent config. If the platform already exposes the subagent as a native role, use the native role instead of reconstructing it.
-2. Use full permissions unless the agent config says otherwise:
-   - `enable_write_tools: true`
-   - `enable_mcp_tools: true`
-   - `enable_subagent_tools: true`
-3. Build the system prompt from:
-   - The agent config `instructions`.
-   - The resolved skills listed in the agent config, attached by path when supported.
-   - Any platform-required skill content only if Antigravity cannot attach skills by path.
-4. Invoke the subagent with the user's task.
-
-## Codex
-
-When `multi_agent_v1.spawn_agent` is available:
-
-1. Prefer spawning the configured subagent by its platform-native role name when that role is available.
-2. Spawn a generic `worker` agent for execution tasks, or an `explorer` agent for bounded codebase questions, only when no configured subagent role is available.
-3. Prefer `fork_context: false` unless the subagent needs the current conversation history.
-4. Pass the selected agent config identifier and required skills as structured items when supported. Include a config path only when the platform or user provided an explicit resolved path:
-
+1. Prefer spawning by native role name. Use generic `worker`/`explorer` only if no custom role exists.
+2. Set `fork_context: false` unless history is needed.
+3. Pass the config identifier and skills as structured items:
 ```json
 {
-  "agent_type": "<subagent-name-or-worker>",
+  "agent_type": "<role-or-worker>",
   "fork_context": false,
   "items": [
-    {
-      "type": "text",
-      "text": "Use the resolved config for subagent <subagent-name>."
-    },
-    {
-      "type": "skill",
-      "name": "<skill-name>"
-    },
-    {
-      "type": "text",
-      "text": "Execute this delegated task: <USER_REQUEST>"
-    }
+    { "type": "text", "text": "Use config for subagent <name>" },
+    { "type": "skill", "name": "<skill-name>" },
+    { "type": "text", "text": "Task: <USER_REQUEST>" }
   ]
 }
 ```
-
-5. Repeat the skill item for every required skill listed by the resolved config.
-6. If skill items are unavailable, write a concise prompt that lists every required skill by name, plus any resolved paths only when the platform requires paths, and tells the worker to follow them before acting.
-7. Wait for the subagent only when its result is needed for the next response or next action.
-8. Close completed agents when they are no longer needed.
+4. If native items are unavailable, write a prompt listing required skills/paths for the worker to follow.
+5. Close completed agents when no longer needed.
 
 ## Reporting
 
-Report which subagent was used, whether it completed or was blocked, and the result needed by the user. Do not claim success until the subagent reports completion.
+Report the selected subagent, execution status, and final result. Do not claim success until it finishes.
