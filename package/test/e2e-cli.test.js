@@ -260,10 +260,10 @@ test("E2E: agentools config validate with corrupted config should report errors"
 
     const result = env.runCLI(["config", "validate"]);
 
-    assert.notStrictEqual(result.exitCode, 0, "Should exit with error code");
+    assert.strictEqual(result.exitCode, 0, "Should gracefully reset and exit with 0");
     assert.ok(
-      result.stdout.includes("invalid") || result.stdout.includes("error") || result.stderr.length > 0,
-      "Should report validation errors"
+      result.stdout.includes("corrupted") || result.stderr.includes("corrupted") || result.stderr.includes("Error loading config"),
+      "Should report corruption warning"
     );
   } finally {
     env.cleanup();

@@ -296,6 +296,8 @@ function copyWorkflowsAsSkills(skillsPath, force = false) {
       results.push({ name: workflowName, skipped: 1, copied: 0 });
     } else {
       fs.copyFileSync(srcPath, destPath);
+      // Mark as managed
+      fs.writeFileSync(path.join(destDir, ".agentools-managed"), "");
       results.push({ name: workflowName, skipped: 0, copied: 1 });
     }
   }
@@ -315,6 +317,28 @@ function installSkills(skillsPath, options = {}) {
     skillsToInstall = skillsToInstall.filter((s) => s === skill);
     if (skillsToInstall.length === 0) {
       throw new Error(`Skill "${skill}" not found in repository`);
+    }
+  } else if (fs.existsSync(skillsPath)) {
+    // Cleanup orphaned managed skills
+    const existingDirs = fs.readdirSync(skillsPath, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+      
+    const workflowsToKeep = getAvailableWorkflows().map(w => w.replace(".md", ""));
+    const allManagedToKeep = [...skillsToInstall, ...workflowsToKeep];
+
+    for (const dirName of existingDirs) {
+      if (!allManagedToKeep.includes(dirName)) {
+        const dirPath = path.join(skillsPath, dirName);
+        const managedMarker = path.join(dirPath, ".agentools-managed");
+        
+        // Backward compatibility for known recently deprecated skills
+        const DEPRECATED_SKILLS = ["subagent-launcher", "subagent-resolution"];
+        
+        if (fs.existsSync(managedMarker) || DEPRECATED_SKILLS.includes(dirName)) {
+           fs.rmSync(dirPath, { recursive: true, force: true });
+        }
+      }
     }
   }
 
@@ -338,6 +362,12 @@ function installSkills(skillsPath, options = {}) {
 
     const destPath = path.join(skillsPath, skillName);
     const copyResult = copyDir(srcPath, destPath, force);
+    
+    // Mark as managed
+    if (fs.existsSync(destPath)) {
+      fs.writeFileSync(path.join(destPath, ".agentools-managed"), "");
+    }
+
     results.push({
       name: skillName,
       ...copyResult,
@@ -360,6 +390,22 @@ function installAgents(agentsPath, options = {}, platform = null) {
       agentsToInstall = [skill];
     } else {
       agentsToInstall = [];
+    }
+  } else if (fs.existsSync(agentsPath)) {
+    // Cleanup orphaned managed agents
+    const existingDirs = fs.readdirSync(agentsPath, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+      
+    for (const dirName of existingDirs) {
+      if (!agentsToInstall.includes(dirName)) {
+        const dirPath = path.join(agentsPath, dirName);
+        const managedMarker = path.join(dirPath, ".agentools-managed");
+        
+        if (fs.existsSync(managedMarker)) {
+           fs.rmSync(dirPath, { recursive: true, force: true });
+        }
+      }
     }
   }
 
@@ -392,6 +438,11 @@ function installAgents(agentsPath, options = {}, platform = null) {
 
     const destPath = path.join(agentsPath, agentName);
     const copyResult = copyDir(srcPath, destPath, force);
+    
+    // Mark as managed
+    if (fs.existsSync(destPath)) {
+      fs.writeFileSync(path.join(destPath, ".agentools-managed"), "");
+    }
     
     /* c8 ignore start */
     if (platform && platform.hooks && platform.hooks.onAgentInstalled) {
