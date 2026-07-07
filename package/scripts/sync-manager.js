@@ -66,7 +66,7 @@ class SyncManager {
     /**
      * Pull from GitHub to local
      */
-    pull() {
+    pull(options = {}) {
         if (!this.config.repository.url) {
             throw new Error("No repository configured");
         }
@@ -76,15 +76,22 @@ class SyncManager {
         }
 
         try {
-            const output = this.runGitCommandWithRetry("git pull", {
-                cwd: this.repoPath,
-                encoding: "utf-8",
-            });
+            if (options.force) {
+                const branch = this.config.repository.branch || "main";
+                this.runGitCommandWithRetry("git fetch --all", { cwd: this.repoPath });
+                this.runGitCommandWithRetry(`git reset --hard origin/${branch}`, { cwd: this.repoPath });
+                this.runGitCommandWithRetry("git clean -fd", { cwd: this.repoPath });
+            } else {
+                const output = this.runGitCommandWithRetry("git pull", {
+                    cwd: this.repoPath,
+                    encoding: "utf-8",
+                });
 
-            // Check for conflicts
-            if (output.includes("CONFLICT")) {
-                const conflicts = this.parseConflicts(output);
-                return { pulled: false, conflicts };
+                // Check for conflicts
+                if (output.includes("CONFLICT")) {
+                    const conflicts = this.parseConflicts(output);
+                    return { pulled: false, conflicts };
+                }
             }
 
             this.updateLastSync();

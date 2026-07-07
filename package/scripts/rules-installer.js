@@ -92,9 +92,10 @@ function mergeRuleFiles(files) {
  *
  * @param {Object} platform - Platform object with rulesPath
  * @param {string} mergedContent - Merged content to write
+ * @param {boolean} [force=false] - Force overwrite identical files
  * @returns {{installed: boolean, reason?: string}}
  */
-function installRulesToFile(platform, mergedContent) {
+function installRulesToFile(platform, mergedContent, force = false) {
   const rulesPath = platform.rulesPath;
   if (!rulesPath) return { installed: false, reason: "No rulesPath" };
 
@@ -105,7 +106,7 @@ function installRulesToFile(platform, mergedContent) {
   }
 
   // Skip write when content is identical
-  if (fs.existsSync(rulesPath)) {
+  if (!force && fs.existsSync(rulesPath)) {
     const existing = fs.readFileSync(rulesPath, "utf-8");
     if (existing === mergedContent) {
       return { installed: true, reason: "Already up to date" };
@@ -123,9 +124,10 @@ function installRulesToFile(platform, mergedContent) {
  *
  * @param {Object} platform - Platform object with rulesPath
  * @param {string[]} ruleFiles - Array of source rule file paths
+ * @param {boolean} [force=false] - Force overwrite identical files
  * @returns {{installed: boolean, count: number, skipped: number}}
  */
-function installRulesToFolder(platform, ruleFiles) {
+function installRulesToFolder(platform, ruleFiles, force = false) {
   const rulesDir = platform.rulesPath;
   if (!rulesDir) return { installed: false, count: 0, skipped: 0 };
 
@@ -140,7 +142,7 @@ function installRulesToFolder(platform, ruleFiles) {
     const filename = path.basename(srcFile);
     const destPath = path.join(rulesDir, filename);
 
-    if (fs.existsSync(destPath)) {
+    if (!force && fs.existsSync(destPath)) {
       // Compare content: only skip if identical
       const srcContent = fs.readFileSync(srcFile);
       const destContent = fs.readFileSync(destPath);
@@ -162,10 +164,11 @@ function installRulesToFolder(platform, ruleFiles) {
  *
  * @param {Object} [options]
  * @param {string} [options.rulesDir=null] - Override rules source directory (for testing)
+ * @param {boolean} [options.force=false] - Force overwrite identical rules
  * @returns {{rulesCount: number, platformsCount: number, details: Array}}
  */
 function installRules(options = {}) {
-  const { rulesDir = null } = options;
+  const { rulesDir = null, force = false } = options;
 
   const ruleFiles = getGlobalRuleFiles(rulesDir);
   if (ruleFiles.length === 0) {
@@ -178,24 +181,34 @@ function installRules(options = {}) {
   const details = [];
   let totalPlatforms = 0;
 
-  for (const platformObj of detectedPlatforms) {
-    if (!platformObj || SKIP_PLATFORMS.includes(platformObj.name)) continue;
-    if (!platformObj.rulesPath) continue;
+  for (const platform of detectedPlatforms) {
+    if (!platform || SKIP_PLATFORMS.includes(platform.name)) continue;
+    if (!platform.rulesPath) continue;
 
-    let result;
-    if (platformObj.rulesType === "folder") {
-      result = installRulesToFolder(platformObj, ruleFiles);
+    if (platform.rulesType === "folder") {
+      const result = installRulesToFolder(platform, ruleFiles, force);
+      if (result.installed) {
+        details.push({
+          platform: platform.name,
+          rulesPath: platform.rulesPath,
+          type: "folder",
+          count: result.count,
+          skipped: result.skipped,
+        });
+        totalPlatforms++;
+      }
     } else {
-      result = installRulesToFile(platformObj, mergedContent);
+      const result = installRulesToFile(platform, mergedContent, force);
+      if (result.installed) {
+        details.push({
+          platform: platform.name,
+          rulesPath: platform.rulesPath,
+          type: "file",
+          reason: result.reason,
+        });
+        totalPlatforms++;
+      }
     }
-
-    details.push({
-      platform: platformObj.name,
-      rulesPath: platformObj.rulesPath,
-      ...result,
-    });
-
-    if (result.installed) totalPlatforms++;
   }
 
   return {

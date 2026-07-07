@@ -634,7 +634,7 @@ function install(options = {}) {
   }
 
   console.log("📋 Installing global rules...");
-  const rulesResult = rulesInstaller.installRules();
+  const rulesResult = rulesInstaller.installRules({ force });
 
   return {
     skillsCount: totalSkills,

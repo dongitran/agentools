@@ -902,11 +902,13 @@ async function pull(args) {
     process.exit(1);
   }
 
+  const force = args.includes("--force") || args.includes("-f");
+
   const SyncManager = require("../scripts/sync-manager");
   const syncManager = new SyncManager(config);
 
   try {
-    const result = syncManager.pull();
+    const result = syncManager.pull({ force });
 
     if (result.pulled) {
       console.log("✅ Pulled successfully!\n");
@@ -916,7 +918,9 @@ async function pull(args) {
 
       if (!noInstall) {
         console.log("📥 Auto-installing skills + MCP servers...\n");
-        await install(["--force", "--no-sync"]); // Install from freshly pulled sync repo without network cache refresh
+        const installArgs = ["--no-sync"];
+        if (force) installArgs.push("--force");
+        await install(installArgs);
       }
     } else {
       console.log(`⚠️  ${result.reason || "Pull failed"}`);
