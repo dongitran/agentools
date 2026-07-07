@@ -223,7 +223,7 @@ const SUPPORTED = [
       onAgentInstalled: (agentName, destPath, platformConfig, context) => {
         try {
           const jsonPath = context.path.join(destPath, "agent.json");
-          const tomlPath = context.path.join(destPath, "agent.toml");
+          const targetTomlPath = context.path.join(destPath, "..", `${agentName}.toml`);
           
           if (context.fs.existsSync(jsonPath)) {
             const agentConfig = JSON.parse(context.fs.readFileSync(jsonPath, "utf-8"));
@@ -253,14 +253,17 @@ const SUPPORTED = [
               codexConfig.skills = agentConfig.skills;
             }
 
-            context.fs.writeFileSync(tomlPath, context.toml.stringify(codexConfig), "utf-8");
+            context.fs.writeFileSync(targetTomlPath, context.toml.stringify(codexConfig), "utf-8");
+            
+            // Clean up the copied agent folder as Codex expects individual files, not directories
+            context.fs.rmSync(destPath, { recursive: true, force: true });
             
             if (platformConfig) {
               platformConfig.agents[agentName] = {
                 ...(platformConfig.agents[agentName] || {}),
                 description: agentConfig.description || "",
                 model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
-                config_file: `agents/${agentName}/agent.toml`
+                config_file: `agents/${agentName}.toml`
               };
               return true;
             }
