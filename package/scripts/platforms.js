@@ -227,16 +227,17 @@ const SUPPORTED = [
           
           if (context.fs.existsSync(jsonPath)) {
             const agentConfig = JSON.parse(context.fs.readFileSync(jsonPath, "utf-8"));
-            
-            // Codex specific config mappings
-            if (agentConfig.codexModel) {
-              agentConfig.model = agentConfig.codexModel;
-              delete agentConfig.codexModel;
+            // Extract only fields supported by Codex to avoid 'unknown field' serialization errors
+            const codexConfig = {
+              name: agentConfig.name || agentName,
+              description: agentConfig.description || "",
+              model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
+            };
+
+            if (agentConfig.instructions || agentConfig.systemPrompt) {
+              codexConfig.instructions = agentConfig.instructions || agentConfig.systemPrompt;
             }
-            if (agentConfig.codexReasoningEffort) {
-              agentConfig.reasoningEffort = agentConfig.codexReasoningEffort;
-              delete agentConfig.codexReasoningEffort;
-            }
+
             if (Array.isArray(agentConfig.skills)) {
               const skillsMap = {};
               for (const skill of agentConfig.skills) {
@@ -247,10 +248,12 @@ const SUPPORTED = [
                   delete skillsMap[skill.name].name;
                 }
               }
-              agentConfig.skills = skillsMap;
+              codexConfig.skills = skillsMap;
+            } else if (agentConfig.skills) {
+              codexConfig.skills = agentConfig.skills;
             }
 
-            context.fs.writeFileSync(tomlPath, context.toml.stringify(agentConfig), "utf-8");
+            context.fs.writeFileSync(tomlPath, context.toml.stringify(codexConfig), "utf-8");
             
             if (platformConfig) {
               platformConfig.agents[agentName] = {
