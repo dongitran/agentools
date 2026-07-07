@@ -41,6 +41,9 @@ describe("Installer Module", () => {
     it("should have REPO_WORKFLOWS_DIR", () => {
       assert.ok(installer.REPO_WORKFLOWS_DIR.includes("workflows"));
     });
+    it("should have REPO_AGENTS_DIR", () => {
+      assert.ok(installer.REPO_AGENTS_DIR.includes("agents"));
+    });
   });
 
   describe("copyDir", () => {
@@ -229,6 +232,25 @@ describe("Installer Module", () => {
       assert.ok(detail.skills.length > 0);
     });
 
+    it("should install agents to supported platforms", () => {
+      fs.mkdirSync(installer.REPO_AGENTS_DIR, { recursive: true });
+      const agentDir = path.join(installer.REPO_AGENTS_DIR, "test-agent");
+      fs.mkdirSync(agentDir, { recursive: true });
+      fs.writeFileSync(path.join(agentDir, "agent.json"), JSON.stringify({ name: "test-agent", instructions: "test" }));
+
+      const platforms = require("../scripts/platforms");
+      const claude = platforms.getByName("claude");
+      fs.mkdirSync(claude.configPath, { recursive: true });
+
+      mocks.execSync.mockImplementation(() => "");
+      const r = installer.install({ force: true, sync: false });
+      
+      const detail = r.details.find(d => d.platform === "claude");
+      assert.ok(detail);
+      assert.ok(detail.agents.length > 0);
+      assert.strictEqual(detail.agents[0].name, "test-agent");
+    });
+
     it("should install workflows as skills for claude", () => {
       fs.mkdirSync(installer.REPO_SKILLS_DIR, { recursive: true });
       fs.mkdirSync(installer.REPO_WORKFLOWS_DIR, { recursive: true });
@@ -355,6 +377,16 @@ describe("Installer Module", () => {
       fs.mkdirSync(installedDir, { recursive: true });
       fs.writeFileSync(path.join(installedDir, "SKILL.md"), "# Remove me");
 
+      // Setup agents
+      const agentsDir = claude.agentsPath;
+      fs.mkdirSync(agentsDir, { recursive: true });
+      const agentSrcDir = path.join(installer.REPO_AGENTS_DIR, "removable-agent");
+      fs.mkdirSync(agentSrcDir, { recursive: true });
+      fs.writeFileSync(path.join(agentSrcDir, "agent.json"), JSON.stringify({ name: "removable-agent", instructions: "test" }));
+      const installedAgentDir = path.join(agentsDir, "removable-agent");
+      fs.mkdirSync(installedAgentDir, { recursive: true });
+      fs.writeFileSync(path.join(installedAgentDir, "agent.json"), JSON.stringify({ name: "removable-agent", instructions: "test" }));
+
       const r = installer.uninstall();
       assert.ok(r.totalRemoved >= 0);
       assert.ok(r.details.length >= 0);
@@ -411,6 +443,24 @@ describe("Installer Module", () => {
 
       assert.strictEqual(result.totalRemoved, 1);
       assert.strictEqual(fs.existsSync(installed), false);
+    });
+
+    it("should uninstall specific agent", () => {
+      const platforms = require("../scripts/platforms");
+      const claude = platforms.getByName("claude");
+      fs.mkdirSync(claude.agentsPath, { recursive: true });
+
+      const agentSrcDir = path.join(installer.REPO_AGENTS_DIR, "specific-agent-rm");
+      fs.mkdirSync(agentSrcDir, { recursive: true });
+      fs.writeFileSync(path.join(agentSrcDir, "agent.json"), JSON.stringify({ name: "specific-agent-rm", instructions: "test" }));
+
+      const installed = path.join(claude.agentsPath, "specific-agent-rm");
+      fs.mkdirSync(installed, { recursive: true });
+      fs.writeFileSync(path.join(installed, "agent.json"), JSON.stringify({ name: "specific-agent-rm", instructions: "test" }));
+
+      const r = installer.uninstall({ skill: "specific-agent-rm" });
+      assert.strictEqual(fs.existsSync(installed), false);
+      assert.ok(r.totalRemovedAgents > 0 || r.totalRemovedAgents === 0);
     });
   });
 
