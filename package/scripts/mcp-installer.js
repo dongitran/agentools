@@ -123,7 +123,7 @@ function readPlatformConfig(configPath, format) {
         }
     } catch (error) {
         console.warn(`⚠️  Failed to parse config at ${configPath}: ${error.message}`);
-        return {};
+        return null;
     }
 }
 
@@ -268,6 +268,10 @@ function writeMcpToPlatformConfig(configPath, servers, options = {}) {
 
     // Read existing config — preserve ALL existing keys
     let config = readPlatformConfig(configPath, format);
+    if (config === null) {
+        console.warn(`⚠️  Skipping MCP config write for ${platformName} due to malformed config file.`);
+        return { added: 0, skipped: 0 };
+    }
 
     // Initialize MCP servers section if not exists
     const mcpKey = format === FORMAT_TOML ? TOML_MCP_KEY : JSON_MCP_KEY;
@@ -362,6 +366,10 @@ function writeMcpWithSecretsToPlatformConfig(configPath, servers, resolvedSecret
 
     // Read existing config — preserve ALL existing keys
     let config = readPlatformConfig(configPath, format);
+    if (config === null) {
+        console.warn(`⚠️  Skipping MCP config write with secrets for ${platformName} due to malformed config file.`);
+        return { installed: 0, servers: [] };
+    }
 
     // Initialize MCP servers section if not exists
     const mcpKey = format === FORMAT_TOML ? TOML_MCP_KEY : JSON_MCP_KEY;

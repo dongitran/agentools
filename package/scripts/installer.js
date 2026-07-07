@@ -363,15 +363,12 @@ function installAgents(agentsPath, options = {}, platform = null) {
     }
   }
 
-  let codexConfigUpdated = false;
-  let codexConfig = {};
-  if (platform && platform.name === "codex" && platform.mcpConfigPath) {
-    try {
-      codexConfig = mcpInstaller.readPlatformConfig(platform.mcpConfigPath, "toml");
-      codexConfig.agents = codexConfig.agents || {};
-    } catch (err) {
-      console.warn(`  ⚠️  Failed to read Codex config: ${err.message}`);
-    }
+  const platformContext = { fs, path, toml, mcpInstaller };
+  let platformConfig = null;
+  let configUpdated = false;
+
+  if (platform && platform.hooks && platform.hooks.preInstallAgents) {
+    platformConfig = platform.hooks.preInstallAgents(platform, platformContext);
   }
 
   for (const agentName of agentsToInstall) {
@@ -394,30 +391,9 @@ function installAgents(agentsPath, options = {}, platform = null) {
     const destPath = path.join(agentsPath, agentName);
     const copyResult = copyDir(srcPath, destPath, force);
     
-    // Codex-specific TOML agent conversion
-    if (platform && platform.name === "codex") {
-      try {
-        const jsonPath = path.join(destPath, "agent.json");
-        const tomlPath = path.join(destPath, "agent.toml");
-        
-        if (fs.existsSync(jsonPath)) {
-          const agentConfig = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
-          // Write agent.toml
-          fs.writeFileSync(tomlPath, toml.stringify(agentConfig), "utf-8");
-          
-          // Register agent in config.toml
-          if (platform.mcpConfigPath) {
-            codexConfig.agents[agentName] = {
-              description: agentConfig.description || "",
-              model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
-              config_file: `agents/${agentName}/agent.toml`
-            };
-            codexConfigUpdated = true;
-          }
-        }
-      } catch (err) {
-        console.warn(`  ⚠️  Failed to configure Codex agent ${agentName}: ${err.message}`);
-      }
+    if (platform && platform.hooks && platform.hooks.onAgentInstalled) {
+      const mutated = platform.hooks.onAgentInstalled(agentName, destPath, platformConfig, platformContext);
+      if (mutated) configUpdated = true;
     }
 
     results.push({
@@ -426,12 +402,8 @@ function installAgents(agentsPath, options = {}, platform = null) {
     });
   }
 
-  if (codexConfigUpdated && platform && platform.name === "codex") {
-    try {
-      mcpInstaller.writePlatformConfig(platform.mcpConfigPath, codexConfig, "toml");
-    } catch (err) {
-      console.warn(`  ⚠️  Failed to save Codex config: ${err.message}`);
-    }
+  if (configUpdated && platform && platform.hooks && platform.hooks.postInstallAgents) {
+    platform.hooks.postInstallAgents(platform, platformConfig, platformContext);
   }
 
   return results;

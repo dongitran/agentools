@@ -191,6 +191,53 @@ const SUPPORTED = [
     agentsDir: "agents",
     mcpConfigFile: "config.toml",
     mcpConfigFormat: "toml", // TOML format instead of JSON
+    hooks: {
+      preInstallAgents: (platform, context) => {
+        if (!platform.mcpConfigPath) return null;
+        try {
+          const config = context.mcpInstaller.readPlatformConfig(platform.mcpConfigPath, "toml");
+          if (!config) {
+            console.warn(`  ⚠️  Codex config is malformed or null. Skipping agent registration.`);
+            return null;
+          }
+          config.agents = config.agents || {};
+          return config;
+        } catch (err) {
+          console.warn(`  ⚠️  Failed to read Codex config: ${err.message}`);
+          return null;
+        }
+      },
+      onAgentInstalled: (agentName, destPath, platformConfig, context) => {
+        try {
+          const jsonPath = context.path.join(destPath, "agent.json");
+          const tomlPath = context.path.join(destPath, "agent.toml");
+          
+          if (context.fs.existsSync(jsonPath)) {
+            const agentConfig = JSON.parse(context.fs.readFileSync(jsonPath, "utf-8"));
+            context.fs.writeFileSync(tomlPath, context.toml.stringify(agentConfig), "utf-8");
+            
+            if (platformConfig) {
+              platformConfig.agents[agentName] = {
+                description: agentConfig.description || "",
+                model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
+                config_file: `agents/${agentName}/agent.toml`
+              };
+              return true;
+            }
+          }
+        } catch (err) {
+          console.warn(`  ⚠️  Failed to configure Codex agent ${agentName}: ${err.message}`);
+        }
+        return false;
+      },
+      postInstallAgents: (platform, platformConfig, context) => {
+        try {
+          context.mcpInstaller.writePlatformConfig(platform.mcpConfigPath, platformConfig, "toml");
+        } catch (err) {
+          console.warn(`  ⚠️  Failed to save Codex config: ${err.message}`);
+        }
+      }
+    },
     get configPath() {
       return path.join(HOME, this.configDir);
     },
