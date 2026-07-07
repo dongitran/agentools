@@ -5,6 +5,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const toml = require("@iarna/toml");
 const { execSync } = require("child_process");
 
 const GIT_SYNC_TIMEOUT_MS = 120000;
@@ -349,7 +350,7 @@ function installSkills(skillsPath, options = {}) {
 /**
  * Install available agents to a platform agents directory.
  */
-function installAgents(agentsPath, options = {}) {
+function installAgents(agentsPath, options = {}, platform = null) {
   const { force = false, skill = null } = options;
   const results = [];
   let agentsToInstall = getAvailableAgents();
@@ -359,6 +360,17 @@ function installAgents(agentsPath, options = {}) {
       agentsToInstall = [skill];
     } else {
       agentsToInstall = [];
+    }
+  }
+
+  let codexConfigUpdated = false;
+  let codexConfig = {};
+  if (platform && platform.name === "codex" && platform.mcpConfigPath) {
+    try {
+      codexConfig = mcpInstaller.readPlatformConfig(platform.mcpConfigPath, "toml");
+      codexConfig.agents = codexConfig.agents || {};
+    } catch (err) {
+      console.warn(`  ⚠️  Failed to read Codex config: ${err.message}`);
     }
   }
 
@@ -381,10 +393,45 @@ function installAgents(agentsPath, options = {}) {
 
     const destPath = path.join(agentsPath, agentName);
     const copyResult = copyDir(srcPath, destPath, force);
+    
+    // Codex-specific TOML agent conversion
+    if (platform && platform.name === "codex") {
+      try {
+        const jsonPath = path.join(destPath, "agent.json");
+        const tomlPath = path.join(destPath, "agent.toml");
+        
+        if (fs.existsSync(jsonPath)) {
+          const agentConfig = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+          // Write agent.toml
+          fs.writeFileSync(tomlPath, toml.stringify(agentConfig), "utf-8");
+          
+          // Register agent in config.toml
+          if (platform.mcpConfigPath) {
+            codexConfig.agents[agentName] = {
+              description: agentConfig.description || "",
+              model: agentConfig.codexModel || agentConfig.model || "gpt-5.4",
+              config_file: `agents/${agentName}/agent.toml`
+            };
+            codexConfigUpdated = true;
+          }
+        }
+      } catch (err) {
+        console.warn(`  ⚠️  Failed to configure Codex agent ${agentName}: ${err.message}`);
+      }
+    }
+
     results.push({
       name: agentName,
       ...copyResult,
     });
+  }
+
+  if (codexConfigUpdated && platform && platform.name === "codex") {
+    try {
+      mcpInstaller.writePlatformConfig(platform.mcpConfigPath, codexConfig, "toml");
+    } catch (err) {
+      console.warn(`  ⚠️  Failed to save Codex config: ${err.message}`);
+    }
   }
 
   return results;
@@ -439,7 +486,7 @@ function installToPlatform(platform, options = {}) {
   if (platform.agentsPath) {
     const agentsPath = platforms.ensureAgentsDir(platform);
     if (agentsPath) {
-      agents = installAgents(agentsPath, options);
+      agents = installAgents(agentsPath, options, platform);
     }
   }
 
