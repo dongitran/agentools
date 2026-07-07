@@ -57,11 +57,15 @@ const SUPPORTED = [
     configDir: ".gemini/antigravity",
     skillsDir: "skills",
     workflowsDir: "global_workflows",
+    agentsDir: "agents",
     mcpConfigFile: "mcp_config.json",
     rulesFile: "GEMINI.md",
     rulesType: "file",
     get configPath() {
       return path.join(HOME, this.configDir);
+    },
+    get agentsPath() {
+      return path.join(HOME, this.configDir, this.agentsDir);
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
@@ -89,12 +93,16 @@ const SUPPORTED = [
     displayName: "Antigravity CLI",
     configDir: ".gemini/antigravity-cli",
     skillsDir: "skills",
+    agentsDir: "agents",
     workflowsAsSkills: true,
     mcpConfigFile: "mcp_config.json",
     rulesFile: "GEMINI.md",
     rulesType: "file",
     get configPath() {
       return path.join(HOME, this.configDir);
+    },
+    get agentsPath() {
+      return path.join(HOME, this.configDir, this.agentsDir);
     },
     get skillsPath() {
       return path.join(HOME, this.configDir, this.skillsDir);
