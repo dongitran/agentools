@@ -129,7 +129,34 @@ function migrateConfig(oldConfig) {
  * Load user config
  */
 function loadConfig() {
-  return config;
+  if (!fs.existsSync(CONFIG_FILE)) {
+    // Auto-initialize if not exists
+    console.log("📝 Config not found, creating default config...");
+    initConfig();
+  }
+
+  try {
+    const data = fs.readFileSync(CONFIG_FILE, "utf-8");
+    let config = JSON.parse(data);
+
+    if (!config || typeof config !== "object") {
+      console.warn("⚠️  Config file is corrupted or not an object, resetting to default.");
+      return createDefaultConfig();
+    }
+
+    // Auto-migrate from older versions
+    if (config.version !== CONFIG_VERSION) {
+      console.log(`🔄 Migrating config from v${config.version} to v${CONFIG_VERSION}...`);
+      config = migrateConfig(config);
+      saveConfig(config);
+      console.log("✅ Config migrated successfully!");
+    }
+
+    return config;
+  } catch (error) {
+    console.warn(`⚠️  Error loading config file (${error.message}), returning default config.`);
+    return createDefaultConfig();
+  }
 }
 
 /**
