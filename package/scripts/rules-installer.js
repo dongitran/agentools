@@ -13,6 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 const platforms = require("./platforms");
+const configManager = require("./config-manager");
 
 // Paths to rules in the cached sync-repo
 const CACHE_DIR = path.join(platforms.HOME, ".agentools-cache");
@@ -26,21 +27,51 @@ const SECTION_SEPARATOR = "\n\n---\n\n";
 // Platforms without global rules support
 const SKIP_PLATFORMS = ["copilot"];
 
+function getUserRepoRulesDir(type) {
+  try {
+    if (configManager.configExists()) {
+      const config = configManager.loadConfig();
+      if (config.repository && config.repository.local) {
+        return path.join(config.repository.local, ".agents", "rules", type);
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return null;
+}
+
 /**
  * Get all .md files from global rules directory
  * @param {string} [overrideDir] - Optional override for rules directory (useful for testing)
  * @returns {string[]} Sorted array of absolute file paths
  */
 function getGlobalRuleFiles(overrideDir = null) {
-  const rulesDir = overrideDir || REPO_RULES_DIR;
-  if (!fs.existsSync(rulesDir)) {
-    return [];
+  if (overrideDir) {
+    if (!fs.existsSync(overrideDir)) return [];
+    return fs
+      .readdirSync(overrideDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort()
+      .map((f) => path.join(overrideDir, f));
   }
-  return fs
-    .readdirSync(rulesDir)
-    .filter((f) => f.endsWith(".md"))
+
+  const ruleFiles = new Map();
+  const dirs = [REPO_RULES_DIR, getUserRepoRulesDir("global")];
+
+  for (const dir of dirs) {
+    if (dir && fs.existsSync(dir)) {
+      fs.readdirSync(dir)
+        .filter((f) => f.endsWith(".md"))
+        .forEach((f) => {
+          ruleFiles.set(f, path.join(dir, f));
+        });
+    }
+  }
+
+  return Array.from(ruleFiles.keys())
     .sort()
-    .map((f) => path.join(rulesDir, f));
+    .map((filename) => ruleFiles.get(filename));
 }
 
 /**
@@ -182,15 +213,31 @@ function installRules(options = {}) {
  * @returns {string[]} Sorted array of absolute file paths
  */
 function getLocalRuleFiles(overrideDir = null) {
-  const rulesDir = overrideDir || REPO_LOCAL_RULES_DIR;
-  if (!fs.existsSync(rulesDir)) {
-    return [];
+  if (overrideDir) {
+    if (!fs.existsSync(overrideDir)) return [];
+    return fs
+      .readdirSync(overrideDir)
+      .filter((f) => f.endsWith(".md"))
+      .sort()
+      .map((f) => path.join(overrideDir, f));
   }
-  return fs
-    .readdirSync(rulesDir)
-    .filter((f) => f.endsWith(".md"))
+
+  const ruleFiles = new Map();
+  const dirs = [REPO_LOCAL_RULES_DIR, getUserRepoRulesDir("local")];
+
+  for (const dir of dirs) {
+    if (dir && fs.existsSync(dir)) {
+      fs.readdirSync(dir)
+        .filter((f) => f.endsWith(".md"))
+        .forEach((f) => {
+          ruleFiles.set(f, path.join(dir, f));
+        });
+    }
+  }
+
+  return Array.from(ruleFiles.keys())
     .sort()
-    .map((f) => path.join(rulesDir, f));
+    .map((filename) => ruleFiles.get(filename));
 }
 
 module.exports = {
