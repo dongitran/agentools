@@ -420,8 +420,11 @@ describe("MCP Installer Module", () => {
       fs.writeFileSync(claude.mcpConfigPath, "not json", "utf-8");
 
       setupMcpServer("corrupt-test", { name: "corrupt-test", command: "cmd", args: [] });
-      const r = mcpInstaller.installMcpServers({ force: true, platform: claude });
-      assert.ok(r.added > 0);
+      mcpInstaller.installMcpServers({ force: true, platform: claude });
+      
+      const content = fs.readFileSync(claude.mcpConfigPath, "utf-8");
+      assert.strictEqual(content, "not json");
+      fs.unlinkSync(claude.mcpConfigPath);
     });
 
     it("should skip existing servers without force", () => {
@@ -494,8 +497,11 @@ describe("MCP Installer Module", () => {
       fs.writeFileSync(ag.mcpConfigPath, "bad json", "utf-8");
 
       setupMcpServer("s5", { name: "s5", command: "cmd", args: [] });
-      const r = mcpInstaller.installMcpServersWithSecrets({});
-      assert.ok(r.installed > 0);
+      mcpInstaller.installMcpServersWithSecrets({});
+      
+      const content = fs.readFileSync(ag.mcpConfigPath, "utf-8");
+      assert.strictEqual(content, "bad json");
+      fs.unlinkSync(ag.mcpConfigPath);
     });
 
     it("should use server disabledTools when no existing ones", () => {
@@ -507,7 +513,7 @@ describe("MCP Installer Module", () => {
         name: "s6", command: "cmd", args: [],
         disabledTools: ["from-config"],
       });
-      mcpInstaller.installMcpServersWithSecrets({});
+      mcpInstaller.installMcpServersWithSecrets({ platform: ag });
       const config = JSON.parse(fs.readFileSync(ag.mcpConfigPath, "utf-8"));
       assert.deepStrictEqual(config.mcpServers.s6.disabledTools, ["from-config"]);
     });

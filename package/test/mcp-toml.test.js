@@ -87,7 +87,7 @@ describe("MCP TOML Support", () => {
       fs.writeFileSync(tmpFile, "not json");
 
       const config = mcpInstaller.readPlatformConfig(tmpFile, "json");
-      assert.deepStrictEqual(config, {});
+      assert.deepStrictEqual(config, null);
     });
 
     it("should handle malformed TOML gracefully", () => {
@@ -95,7 +95,7 @@ describe("MCP TOML Support", () => {
       fs.writeFileSync(tmpFile, "[invalid toml\nno closing bracket");
 
       const config = mcpInstaller.readPlatformConfig(tmpFile, "toml");
-      assert.deepStrictEqual(config, {});
+      assert.deepStrictEqual(config, null);
     });
   });
 
