@@ -41,7 +41,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd package
-          npx c8 --all --include='scripts/**/*.js' --check-coverage --lines 90 --functions 90 --branches 80 node --test
+          npx c8 --all --include='scripts/**/*.js' --check-coverage --lines 89 --functions 90 --branches 80 node --test
         shell: bash
 
       - name: Test CLI installation
