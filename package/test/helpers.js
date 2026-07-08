@@ -138,7 +138,7 @@ function createMockGitRepo(options = {}) {
   const repoDir = createTempDir();
 
   // Initialize git repo
-  execSync("git init", { cwd: repoDir, stdio: "ignore" });
+  execSync("git init --initial-branch=main", { cwd: repoDir, stdio: "ignore" });
   execSync('git config user.email "test@example.com"', { cwd: repoDir, stdio: "ignore" });
   execSync('git config user.name "Test User"', { cwd: repoDir, stdio: "ignore" });
 
