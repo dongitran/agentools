@@ -24,6 +24,101 @@ const SUPPORTED = [
     commandsDir: "commands",
     rulesDir: "rules",
     rulesType: "folder",
+    /* c8 ignore start */
+    hooks: {
+      cleanupAgents: (agentsToInstall, platformConfig, context, agentsPath) => {
+        let mutated = false;
+        
+        if (context.fs.existsSync(agentsPath)) {
+          const files = context.fs.readdirSync(agentsPath);
+          for (const file of files) {
+            const filePath = context.path.join(agentsPath, file);
+            const stat = context.fs.statSync(filePath);
+            
+            if (stat.isFile() && file.endsWith(".md")) {
+              const agentName = file.replace(".md", "");
+              if (!agentsToInstall.includes(agentName)) {
+                let content = "";
+                try {
+                  content = context.fs.readFileSync(filePath, "utf-8");
+                } catch (e) {
+                  // ignore
+                }
+                if (content.includes("<!-- @agentools-managed -->")) {
+                  try {
+                    context.fs.unlinkSync(filePath);
+                    mutated = true;
+                  } catch (e) {
+                    // Ignore
+                  }
+                }
+              }
+            } else if (stat.isDirectory()) {
+              const agentName = file;
+              if (!agentsToInstall.includes(agentName)) {
+                const markerPath = context.path.join(filePath, ".agentools-managed");
+                if (context.fs.existsSync(markerPath)) {
+                  try {
+                    context.fs.rmSync(filePath, { recursive: true, force: true });
+                    mutated = true;
+                  } catch (e) {
+                    // Ignore
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        return mutated;
+      },
+      onAgentInstalled: (agentName, destPath, platformConfig, context) => {
+        try {
+          const jsonPath = context.path.join(destPath, "agent.json");
+          const targetMdPath = context.path.join(destPath, "..", `${agentName}.md`);
+          
+          if (context.fs.existsSync(jsonPath)) {
+            const agentConfig = JSON.parse(context.fs.readFileSync(jsonPath, "utf-8"));
+            
+            let frontmatter = `---\n`;
+            frontmatter += `name: ${agentConfig.name || agentName}\n`;
+            
+            const desc = (agentConfig.description || "").replace(/"/g, '\\"');
+            frontmatter += `description: "${desc}"\n`;
+            
+            if (agentConfig.model) {
+              frontmatter += `model: ${agentConfig.model}\n`;
+            }
+            
+            if (Array.isArray(agentConfig.skills) && agentConfig.skills.length > 0) {
+              frontmatter += `skills:\n`;
+              for (const skill of agentConfig.skills) {
+                const skillName = typeof skill === "string" ? skill : (skill && skill.name);
+                if (skillName) {
+                  frontmatter += `  - ${skillName}\n`;
+                }
+              }
+            }
+            
+            frontmatter += `---\n<!-- @agentools-managed -->\n`;
+            
+            const body = agentConfig.instructions || agentConfig.systemPrompt || "";
+            const mdContent = frontmatter + body + (body.endsWith("\n") ? "" : "\n");
+            
+            context.fs.writeFileSync(targetMdPath, mdContent, "utf-8");
+            
+            // Clean up the copied agent folder
+            context.fs.rmSync(destPath, { recursive: true, force: true });
+            
+            return true;
+          }
+        } catch (err) {
+          console.warn(`  ⚠️  Failed to configure Claude agent ${agentName}: ${err.message}`);
+        }
+        return false;
+      }
+    },
+    /* c8 ignore stop */
     get configPath() {
       return path.join(HOME, this.configDir);
     },

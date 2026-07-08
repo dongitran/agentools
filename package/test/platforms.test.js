@@ -93,6 +93,80 @@ describe("Platforms Module", () => {
       const claude = platforms.getByName("claude");
       assert.ok(claude.rulesPath.endsWith(path.join(".claude", "rules")));
     });
+
+    describe("hooks", () => {
+      it("should convert agent.json to .md in onAgentInstalled", () => {
+        const claude = platforms.getByName("claude");
+        const agentName = "test-agent";
+        const destPath = path.join(env.tmpDir, "claude-test-agent");
+        
+        fs.mkdirSync(destPath, { recursive: true });
+        fs.writeFileSync(path.join(destPath, "agent.json"), JSON.stringify({
+          name: "custom-name",
+          description: "A test agent",
+          model: "claude-3-5-sonnet",
+          skills: ["skill1", { name: "skill2" }],
+          instructions: "Do things.",
+        }));
+        
+        const context = { fs, path };
+        const result = claude.hooks.onAgentInstalled(agentName, destPath, null, context);
+        
+        assert.strictEqual(result, true);
+        assert.ok(!fs.existsSync(destPath), "Directory should be removed");
+        
+        const mdPath = path.join(env.tmpDir, "test-agent.md");
+        assert.ok(fs.existsSync(mdPath), "Markdown file should be created");
+        
+        const mdContent = fs.readFileSync(mdPath, "utf-8");
+        assert.ok(mdContent.includes("name: custom-name"));
+        assert.ok(mdContent.includes('description: "A test agent"'));
+        assert.ok(mdContent.includes("model: claude-3-5-sonnet"));
+        assert.ok(mdContent.includes("- skill1"));
+        assert.ok(mdContent.includes("- skill2"));
+        assert.ok(mdContent.includes("<!-- @agentools-managed -->"));
+        assert.ok(mdContent.includes("Do things."));
+      });
+      
+      it("should clean up managed .md files in cleanupAgents", () => {
+        const claude = platforms.getByName("claude");
+        const agentsPath = path.join(env.tmpDir, "claude-agents-cleanup");
+        fs.mkdirSync(agentsPath, { recursive: true });
+        
+        fs.writeFileSync(path.join(agentsPath, "remove-me.md"), "---\nname: remove-me\n---\n<!-- @agentools-managed -->\nInstructions");
+        fs.writeFileSync(path.join(agentsPath, "keep-me.md"), "---\nname: keep-me\n---\n<!-- @agentools-managed -->\nInstructions");
+        fs.writeFileSync(path.join(agentsPath, "user-agent.md"), "---\nname: user-agent\n---\nUser created this");
+        
+        const context = { fs, path };
+        const mutated = claude.hooks.cleanupAgents(["keep-me"], null, context, agentsPath);
+        
+        assert.strictEqual(mutated, true);
+        assert.ok(!fs.existsSync(path.join(agentsPath, "remove-me.md")));
+        assert.ok(fs.existsSync(path.join(agentsPath, "keep-me.md")));
+        assert.ok(fs.existsSync(path.join(agentsPath, "user-agent.md")));
+      });
+
+      it("should clean up legacy directories in cleanupAgents", () => {
+        const claude = platforms.getByName("claude");
+        const agentsPath = path.join(env.tmpDir, "claude-legacy-cleanup");
+        fs.mkdirSync(agentsPath, { recursive: true });
+        
+        const removeDir = path.join(agentsPath, "legacy-remove");
+        fs.mkdirSync(removeDir, { recursive: true });
+        fs.writeFileSync(path.join(removeDir, ".agentools-managed"), "");
+        
+        const keepDir = path.join(agentsPath, "legacy-keep");
+        fs.mkdirSync(keepDir, { recursive: true });
+        fs.writeFileSync(path.join(keepDir, ".agentools-managed"), "");
+
+        const context = { fs, path };
+        const mutated = claude.hooks.cleanupAgents(["legacy-keep"], null, context, agentsPath);
+        
+        assert.strictEqual(mutated, true);
+        assert.ok(!fs.existsSync(removeDir));
+        assert.ok(fs.existsSync(keepDir));
+      });
+    });
   });
 
   describe("Antigravity platform", () => {
