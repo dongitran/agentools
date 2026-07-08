@@ -354,19 +354,15 @@ describe("SyncManager Module", () => {
 
     it("should add skills excluding bundled ones", () => {
       const sm = createManager();
-      const skillsDir = path.join(sm.repoPath, ".agents", "skills");
-      fs.mkdirSync(skillsDir, { recursive: true });
-      fs.mkdirSync(path.join(skillsDir, "custom-skill"));
-      fs.mkdirSync(path.join(skillsDir, "agentools"));
-      fs.mkdirSync(path.join(sm.repoPath, ".agents", "workflows"), { recursive: true });
-      mocks.execSync.mockImplementation(() => "");
-      sm.gitCommit("test");
-      // Skills are now added via spawnSync
-      const addCalls = mocks.spawnSync.calls.filter(c =>
-        c[1] && c[1][0] === "add" && c[1][1]?.includes(".agents/skills/")
-      );
-      assert.ok(addCalls.some(c => c[1][1].includes("custom-skill")));
-      assert.ok(!addCalls.some(c => c[1][1].includes("agentools")));
+      fs.mkdirSync(path.join(sm.repoPath, ".agents", "skills", "custom-skill"), { recursive: true });
+      fs.mkdirSync(path.join(sm.repoPath, ".agents", "skills", "agentools"), { recursive: true });
+      sm.gitCommit("msg");
+      
+      const addCalls = mocks.execSync.calls.filter(c => c[0].includes("git add"));
+      assert.ok(addCalls.some(c => c[0].includes(".agents/skills/")));
+      
+      const resetCalls = mocks.spawnSync.calls.filter(c => c[0] === "git" && c[1][0] === "reset");
+      assert.ok(resetCalls.some(c => c[1].includes(".agents/skills/agentools")));
     });
 
     it("should add mcp-servers if dir exists", () => {

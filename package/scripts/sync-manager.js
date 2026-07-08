@@ -205,14 +205,15 @@ class SyncManager {
             const bundledSkills = ["agentools", "config-manager"];
 
             if (fs.existsSync(skillsDir)) {
-                const skills = fs.readdirSync(skillsDir);
-                skills.forEach(skill => {
-                    if (!bundledSkills.includes(skill)) {
-                        spawnSync("git", ["add", `.agents/skills/${skill}`], {
-                            cwd: this.repoPath,
-                            stdio: "pipe"
-                        });
-                    }
+                // Add all files including deletions
+                execSync("git add .agents/skills/", { cwd: this.repoPath, stdio: "pipe" });
+                
+                // Unstage bundled skills so they are never committed
+                bundledSkills.forEach(skill => {
+                    spawnSync("git", ["reset", "--", `.agents/skills/${skill}`], {
+                        cwd: this.repoPath,
+                        stdio: "pipe"
+                    });
                 });
             }
 

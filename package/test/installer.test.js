@@ -25,6 +25,8 @@ describe("Installer Module", () => {
 
   beforeEach(() => {
     if (fs.existsSync(installer.CACHE_DIR)) cleanTempDir(installer.CACHE_DIR);
+    const configDir = path.join(env.tmpDir, ".agentools");
+    if (fs.existsSync(configDir)) cleanTempDir(configDir);
     mocks.execSync.reset();
   });
 

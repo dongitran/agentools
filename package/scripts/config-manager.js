@@ -30,7 +30,7 @@ function getConfigDir() {
  * Check if user config exists
  */
 function configExists() {
-  return fs.existsSync(CONFIG_FILE);
+  const e = fs.existsSync(CONFIG_FILE); console.log("configExists check:", CONFIG_FILE, e); return e;
 }
 
 /**

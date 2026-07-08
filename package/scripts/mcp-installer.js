@@ -22,6 +22,7 @@ const JSON_MCP_KEY = "mcpServers";   // CamelCase
  * @returns {string|null} Path to .agents/mcp-servers/ or null
  */
 function getMcpServersDir() {
+    if (!configManager.configExists()) return null;
     const config = configManager.loadConfig();
     const repoLocal = config.repository && config.repository.local;
     if (!repoLocal) return null;

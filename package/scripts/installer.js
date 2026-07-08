@@ -191,11 +191,13 @@ function isRepoCached() {
 function getAvailableSkills() {
   const skills = new Set();
 
-  const dirs = [
-    PACKAGE_SKILLS_DIR,
-    REPO_SKILLS_DIR,
-    getUserRepoSkillsDir()
-  ];
+  const userRepoSkillsDir = getUserRepoSkillsDir();
+  const dirs = [PACKAGE_SKILLS_DIR];
+  if (userRepoSkillsDir) {
+    dirs.push(userRepoSkillsDir);
+  } else {
+    dirs.push(REPO_SKILLS_DIR);
+  }
 
   for (const dir of dirs) {
     if (dir && fs.existsSync(dir)) {
@@ -213,7 +215,7 @@ function getAvailableSkills() {
     }
   }
 
-  return Array.from(skills);
+  console.log("TEST USER REPO:", getUserRepoSkillsDir()); return Array.from(skills);
 }
 
 /**
@@ -222,11 +224,13 @@ function getAvailableSkills() {
 function getAvailableAgents() {
   const agents = new Set();
 
-  const dirs = [
-    PACKAGE_AGENTS_DIR,
-    REPO_AGENTS_DIR,
-    getUserRepoAgentsDir()
-  ];
+  const userRepoAgentsDir = getUserRepoAgentsDir();
+  const dirs = [PACKAGE_AGENTS_DIR];
+  if (userRepoAgentsDir) {
+    dirs.push(userRepoAgentsDir);
+  } else {
+    dirs.push(REPO_AGENTS_DIR);
+  }
 
   for (const dir of dirs) {
     if (dir && fs.existsSync(dir)) {
@@ -264,11 +268,13 @@ function getAvailableAgents() {
 function getAllWorkflowFiles() {
   const workflows = new Map();
 
-  const dirs = [
-    REPO_WORKFLOWS_DIR,
-    getUserRepoWorkflowsDir(),
-    PACKAGE_WORKFLOWS_DIR
-  ];
+  const userRepoWorkflowsDir = getUserRepoWorkflowsDir();
+  const dirs = [PACKAGE_WORKFLOWS_DIR];
+  if (userRepoWorkflowsDir) {
+    dirs.push(userRepoWorkflowsDir);
+  } else {
+    dirs.push(REPO_WORKFLOWS_DIR);
+  }
 
   for (const dir of dirs) {
     if (dir && fs.existsSync(dir)) {
@@ -377,11 +383,13 @@ function installSkills(skillsPath, options = {}) {
         if (fs.existsSync(userPath)) {
           srcPath = userPath;
         }
+      } else {
+        // Only fallback to cache if no user repo is configured
+        const cachePath = path.join(REPO_SKILLS_DIR, skillName);
+        if (fs.existsSync(cachePath)) {
+          srcPath = cachePath;
+        }
       }
-    }
-
-    if (!fs.existsSync(srcPath)) {
-      srcPath = path.join(REPO_SKILLS_DIR, skillName);
     }
 
     const destPath = path.join(skillsPath, skillName);
@@ -467,11 +475,12 @@ function installAgents(agentsPath, options = {}, platform = null) {
         if (fs.existsSync(userPath)) {
           srcPath = userPath;
         }
+      } else {
+        const cachePath = path.join(REPO_AGENTS_DIR, agentName);
+        if (fs.existsSync(cachePath)) {
+          srcPath = cachePath;
+        }
       }
-    }
-
-    if (!fs.existsSync(srcPath)) {
-      srcPath = path.join(REPO_AGENTS_DIR, agentName);
     }
 
     const destPath = path.join(agentsPath, agentName);
