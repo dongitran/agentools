@@ -1,22 +1,22 @@
 ---
 name: jira
-description: Use when working with Jira Cloud through the jira CLI, including assigned issue lists, issue details with local inline image files, remote links, transitions, safe issue assignment, and worklogs.
+description: Use when working with Jira Cloud through the jira CLI, including assigned issue lists, issue details with local inline image files, remote links, transitions, safe issue assignment, worklogs, descriptions, summaries, and comments.
 ---
 
 # Jira
 
 ## Purpose
 
-Use `jira` to read and update Jira Cloud issues from the terminal. Prefer it when the user needs assigned tickets, one issue's description/comments/attachments, locally saved inline issue images, remote links, available transitions, safe assignee changes, status changes, logout, or worklog entries.
+Use `jira` to read and update Jira Cloud issues from the terminal. Prefer it when the user needs assigned tickets, one issue's description/comments/attachments, locally saved inline issue images, remote links, available transitions, safe assignee changes, description/summary/comment writes, status changes, logout, or worklog entries.
 
 If `jira` is missing, install it from `@saptools/jira`: `npm install -g @saptools/jira`.
 
 ## First Steps
 
-1. Identify whether the user needs auth status, assigned issues, one issue detail, remote links, transitions, a transition write, or a worklog write.
+1. Identify whether the user needs auth status, assigned issues, one issue detail, remote links, transitions, a transition write, a content write, or a worklog write.
 2. Prefer `--json` for agent workflows and downstream parsing.
 3. Reuse the default token store at `~/.jira-oauth/tokens.json` when available.
-4. Use write commands only when the user explicitly asks to assign an issue, transition an issue, or add worklog time.
+4. Use write commands only when the user explicitly asks to assign an issue, transition an issue, update issue content, or add worklog time.
 5. Treat access tokens, refresh tokens, Authorization headers, OAuth client secrets, and raw token-store contents as sensitive.
 
 ## Authentication
@@ -72,11 +72,76 @@ Read one issue:
 jira issue OPS-123 --json
 ```
 
-- `--json`: return summary, status, priority, assignee, description text, paginated comments, attachments, clone links, and saved image metadata.
+- `--json`: return summary, status, priority, assignee, flattened description text, raw `descriptionAdf`, paginated comments, attachments, clone links, and saved image metadata.
 - `--no-images`: skip downloading inline Jira images.
 - `--image-dir <path>`: save inline images in a specific folder instead of the OS temp directory.
 - `--max-images <number>`: cap the number of inline images saved.
 - `--max-image-bytes <number>`: cap each saved image body size.
+
+Print the current raw description ADF when the user needs to inspect or safely edit a complex description:
+
+```bash
+jira describe OPS-123 --print > description.adf.json
+jira describe OPS-123 --print --json
+```
+
+- `--print` is a read mode and does not update Jira.
+- Default `--print` emits raw pretty-printed ADF JSON, not human text, so redirected output can be reused with `--adf-file`.
+- `--print --json` returns `{ "issueKey": "OPS-123", "description": <ADF|null> }`.
+- If default `--print` reports that the issue has no description ADF, use `--print --json` to handle `null` explicitly.
+
+Round-trip a description with images by editing the printed ADF and pushing the whole document back:
+
+```bash
+jira describe OPS-123 --print > description.adf.json
+# Edit only the relevant {"type":"text","text":"..."} node.
+jira describe OPS-123 --adf-file ./description.adf.json
+```
+
+- Leave `media` and `mediaSingle` nodes unchanged. Their `media.attrs.id` values point to existing Jira media, so the image is preserved without re-upload.
+- `--text` and `--text-file` cannot preserve media because flattened text has no media nodes.
+- The read-edit-write flow is last-write-wins; if Jira changes between `--print` and `--adf-file`, the later update overwrites the server description.
+
+Update a description only when the user explicitly asks for a write:
+
+```bash
+jira describe OPS-123 --text "Plain text description"
+jira describe OPS-123 --text-file ./description.txt
+jira describe OPS-123 --adf-file ./description.adf.json
+jira describe OPS-123 --text "Additional notes" --append
+jira describe OPS-123 --adf-file ./description.adf.json --json
+```
+
+- Exactly one body source is required for write mode: `--text`, `--text-file`, or `--adf-file`.
+- Plain text becomes ADF paragraphs; blank lines split paragraphs and single newlines become hard breaks.
+- `jira describe` checks Jira edit metadata before writing.
+- If the current description contains media, plain-text replacement is refused unless `--force` is passed. Prefer `--append` or a `--print` to `--adf-file` round-trip that preserves the media nodes.
+- Native local-image inline embedding is unsupported because Jira attachments do not reliably expose the Media Services ID needed for ADF `media` file nodes.
+- Use `--no-notify-users` only when the user explicitly wants to suppress Jira notifications.
+
+Update a summary only when the user explicitly asks for a write:
+
+```bash
+jira summary OPS-123 "New issue title"
+jira summary OPS-123 "New issue title" --json
+```
+
+- Summary is a plain string, not ADF.
+- The command checks Jira edit metadata before writing.
+- Use `--no-notify-users` only when notification suppression is intended.
+
+Add a comment only when the user explicitly asks for a write:
+
+```bash
+jira comment OPS-123 --text "Reviewed the rollout logs."
+jira comment OPS-123 --text-file ./comment.txt
+jira comment OPS-123 --adf-file ./comment.adf.json
+jira comment OPS-123 --text "Reviewed the rollout logs." --json
+```
+
+- Exactly one body source is required: `--text`, `--text-file`, or `--adf-file`.
+- Plain text becomes ADF paragraphs. Raw ADF is for callers that need richer comment content.
+- JSON output returns `issueKey` and `commentId`.
 
 List remote links:
 
