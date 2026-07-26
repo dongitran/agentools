@@ -13,13 +13,22 @@ If `cf-inspector` is missing, install it from `@saptools/cf-inspector`: `npm ins
 
 Treat captured runtime values as sensitive. Snapshots, scopes, logpoints, exception values, and app environment data can contain tokens, user data, credentials, or business payloads. Redact before sharing outside the local task.
 
+Only one local `cf-inspector` process may actively debug the same target. Every
+command that opens a debugger session (`snapshot`, `watch`, `exception`, `log`,
+`check-breakpoint`, `eval`, and `list-scripts`) acquires a target-scoped lock
+before connecting. If `TARGET_ALREADY_DEBUGGED` is returned, do not retry in
+parallel or bypass the guard: wait for the reported owner PID to finish. A dead
+owner's stale lock is reclaimed automatically. `attach` and `list-targets` are
+safe discovery operations and do not acquire this lock. Debuggers on another
+machine or outside `cf-inspector` remain the operator's responsibility because
+a local lock cannot detect them.
+
 ## First Steps
 
 1. Identify whether the user wants a one-shot snapshot, continuous breakpoint watch, logpoint stream, exception capture, runtime evaluation, script listing, or connectivity check.
-2. Choose exactly one target option:
-   - Option A: use `--app <name>` when the app is in the current `cf target`. `cf-inspector` opens and closes the tunnel internally through `@saptools/cf-debugger`; do not run `cf-debugger` first for this option.
-   - Option B: use `--region --org --space --app` when the app is not in the current `cf target`.
-   - Option C: use `--port <number>` and optional `--host <host>` only when a local inspector or Cloud Foundry tunnel is already running. For a Cloud Foundry tunnel, open it with `cf-debugger` first by reading and following the `cf-debugger` skill.
+2. Choose exactly one target mode:
+   - Option A: use all of `--region --org --space --app`. `cf-inspector` never inherits ambient `cf target` values and opens/closes the tunnel internally.
+   - Option B: use `--port <number>` and optional `--host <host>` when a local inspector or Cloud Foundry tunnel is already running. For a Cloud Foundry tunnel, open it with `cf-debugger` first by reading and following the `cf-debugger` skill.
 3. Use live inspector access when the task needs current runtime evidence and the target plus credentials are available. Ask only when the target, credentials, or side effects of pausing the app are unclear.
 4. Choose the narrowest command that answers the question.
 5. Prefer JSON output for agent workflows. Use `--no-json` only when the user asks for human-readable output.
@@ -27,6 +36,33 @@ Treat captured runtime values as sensitive. Snapshots, scopes, logpoints, except
 ## Command Choice
 
 Use `snapshot` for one-shot evidence at a line. It sets one or more breakpoints, waits for the first matching pause, captures expressions/scopes/stack, resumes unless `--keep-paused` is set, prints JSON, then exits.
+
+With no isolate selector, snapshot/watch/exception/log automatically attach to
+the main isolate and all current or newly-spawned NodeWorkers. Do not iterate
+worker indexes. Read the `isolate` field in results to learn which worker ran
+the code. Use `--worker-id <id>` to pin one live worker, `--main-only` to ignore
+workers, or the legacy `--worker <index>` only when positional selection is
+specifically required.
+
+When an external request or job must run only after debugger setup, pass
+`--ready-event` to `snapshot`, `watch`, `exception`, or `log`. Scan stderr
+line-by-line, parse JSON object lines while ignoring ordinary progress and
+warnings, and trigger only after receiving:
+
+```json
+{"event":"breakpoint-armed","schemaVersion":1,"command":"snapshot","sessions":3,"resolvedLocations":2,"timeoutMs":30000}
+```
+
+Require `event === "breakpoint-armed"`, `schemaVersion === 1`, and the expected
+`command`. Do not guess a startup delay or poll human prose such as
+`Waiting up to`. The event is emitted once, after every initially/currently
+registered isolate completes arming and before the command waits. Later workers
+still auto-arm but are not included in that event's counts. `resolvedLocations` is `null` for
+`exception`, and `timeoutMs` is `null` for `log`. No event is emitted unless
+`--ready-event` is passed; an explicitly requested event remains visible with
+`snapshot --quiet`. With `log --ready-event`, events received while the other
+initial sessions are still arming are neither emitted nor counted, so consume
+log stdout only after the marker.
 
 ```bash
 cf-inspector snapshot --port 9229 \
@@ -72,17 +108,22 @@ Use `eval` for global runtime state, not paused-frame locals.
 cf-inspector eval --port 9229 --expr 'process.uptime()'
 ```
 
-Use `list-scripts` when breakpoints do not bind or path mapping is uncertain. `--filter` accepts literal text, `|` alternatives, and `.*` / `.+` wildcards.
+Use `list-scripts` when breakpoints do not bind or path mapping is uncertain.
+Without an isolate selector it aggregates the main isolate and every current
+worker. Every JSON entry has an `isolate` tag; `--no-json` appends `main` or
+`worker:<workerId>` as a third tab-separated column. `--filter` accepts literal
+text, `|` alternatives, and `.*` / `.+` wildcards.
 
 ```bash
 cf-inspector list-scripts --port 9229 --filter '/home/vcap/app|ValidatePayloadWorker'
 ```
 
-Use `list-targets` and then pass `--target <index>` when worker threads appear as separate inspector targets.
+Use `list-targets` to inspect raw targets and stable worker IDs. Ordinary breakpoint workflows do not need a worker selector.
 
 ```bash
 cf-inspector list-targets --port 9229
-cf-inspector snapshot --port 9229 --target 1 --bp dist/worker.js:42
+cf-inspector snapshot --port 9229 --bp dist/worker.js:42
+cf-inspector snapshot --port 9229 --worker-id 3 --bp dist/worker.js:42
 ```
 
 Use `attach` as a connectivity smoke test for an inspector port or CF tunnel.
@@ -97,16 +138,7 @@ cf-inspector attach --port 9229
 
 ### Mode 1: Cloud Foundry app auto-tunnel
 
-Use this mode when the user gives an app name. `cf-inspector` reads the current `cf target` for region/org/space, starts the tunnel through `@saptools/cf-debugger`, runs the inspector command, and disposes the tunnel on exit. Do not run `cf-debugger start` first.
-
-```bash
-cf-inspector snapshot \
-  --app app-demo \
-  --bp dist/handler.js:42 \
-  --capture 'req.url, this.user'
-```
-
-Pass the full selector when the app is outside the current `cf target`:
+Use this mode when the user gives a complete region/org/space/app selector. `cf-inspector` starts the tunnel through `@saptools/cf-debugger`, runs the inspector command, and disposes the tunnel on exit. Do not run `cf-debugger start` first.
 
 ```bash
 cf-inspector snapshot \
@@ -148,6 +180,15 @@ When a breakpoint does not bind:
 3. Add or adjust `--remote-root`.
 4. Retry with a short `--timeout`.
 
+Before retrying, use `check-breakpoint` with the same file and
+`--remote-root`. `script-not-loaded` means the file/path mapping does not match
+any loaded script; `unbreakable` means the file is loaded but the exact line is
+not executable; `breakable` reports concrete locations across attached isolates.
+
+```bash
+cf-inspector check-breakpoint --port 9229 --bp dist/handler.js:42
+```
+
 ## Captures
 
 Pass comma-separated expressions with `--capture` or `--stack-captures`. The parser preserves commas inside objects, arrays, calls, and quoted strings.
@@ -183,6 +224,7 @@ Default command output is JSON except stream trailers:
 - `snapshot`, `exception`, `eval`, `list-scripts`, and `attach` print formatted JSON to stdout.
 - `log` and `watch` print one compact JSON object per event to stdout.
 - `log` and `watch` write a JSON summary trailer to stderr in JSON mode, such as `{"stopped":"max-events","emitted":3}`.
+- With `--ready-event`, `snapshot`, `watch`, `exception`, and `log` first write one versioned `{"event":"breakpoint-armed",...}` JSON line to stderr after arming. Treat it separately from stream summary trailers.
 - `eval` exits non-zero when JSON output contains `exceptionDetails`.
 
 For agent parsing, read stdout events line by line and parse the final stderr JSON trailer separately.
@@ -191,7 +233,7 @@ For agent parsing, read stdout events line by line and parse the final stderr JS
 
 Common `CfInspectorError.code` values:
 
-- `MISSING_TARGET`: neither `--port`, `--app` with a current CF target, nor a complete CF target was provided.
+- `MISSING_TARGET`: neither `--port` nor a complete `--region/--org/--space/--app` target was provided.
 - `INVALID_ARGUMENT`: numeric flags are not positive integers.
 - `INVALID_BREAKPOINT`: location is not `file:line`.
 - `INVALID_REMOTE_ROOT`: remote-root regex failed to compile.
@@ -200,6 +242,7 @@ Common `CfInspectorError.code` values:
 - `INVALID_PAUSE_TYPE`: `exception --type` is not `uncaught`, `caught`, or `all`.
 - `INSPECTOR_DISCOVERY_FAILED`: `/json/list` did not expose a target.
 - `INSPECTOR_CONNECTION_FAILED`: WebSocket handshake or transport failed.
+- `TARGET_ALREADY_DEBUGGED`: another live local `cf-inspector` process owns the target; wait for it to finish.
 - `CDP_REQUEST_FAILED`: CDP method failed.
 - `BREAKPOINT_NOT_HIT`: timeout while waiting for a matching pause.
 - `UNRELATED_PAUSE`: target paused elsewhere and strict mode was enabled.
