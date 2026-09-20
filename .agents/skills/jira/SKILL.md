@@ -1,22 +1,22 @@
 ---
 name: jira
-description: Use when working with Jira Cloud through the jira CLI, including Atlassian API token or OAuth authentication, connected-account identity, assigned issue lists, issue details with local attachments and inline images, remote links, transitions, safe issue assignment, worklogs, descriptions, summaries, comment creation, backup-first comment deletion, and creating new tickets.
+description: Use when working with Jira Cloud through the jira CLI, including Atlassian API token or OAuth authentication, connected-account identity, assigned issue lists, issue details with local attachments and inline images, remote links, transitions, safe issue assignment, worklogs, descriptions, summaries, comment creation, backup-first comment deletion, creating new tickets, and uploading (optionally inline-embedding) attachments.
 ---
 
 # Jira
 
 ## Purpose
 
-Use `jira` to read, update, and create Jira Cloud issues from the terminal. Prefer it when the user needs the connected account's identity, assigned tickets, one issue's description/comments/attachments, locally saved attachment or inline-image files, remote links, available transitions, safe assignee changes, description/summary/comment writes, recoverable comment deletion, status changes, logout, worklog entries, or a brand-new ticket.
+Use `jira` to read, update, and create Jira Cloud issues from the terminal. Prefer it when the user needs the connected account's identity, assigned tickets, one issue's description/comments/attachments, locally saved attachment or inline-image files, remote links, available transitions, safe assignee changes, description/summary/comment writes, recoverable comment deletion, status changes, logout, worklog entries, a brand-new ticket, or uploading a local file/image as an attachment (optionally a best-effort inline embed).
 
 If `jira` is missing, install it from `@saptools/jira`: `npm install -g @saptools/jira`.
 
 ## First Steps
 
-1. Identify whether the user needs auth status or identity, assigned issues, one issue detail, a new ticket, remote links, transitions, a transition write, a content write, a comment deletion, or a worklog write.
+1. Identify whether the user needs auth status or identity, assigned issues, one issue detail, a new ticket, uploading/attaching a file, remote links, transitions, a transition write, a content write, a comment deletion, or a worklog write.
 2. Use plain human-readable output by default, including when an agent will read the result and act on it directly. Use `--json` only when a deterministic script, `jq` pipeline, or another tool must parse fields programmatically.
 3. Prefer an Atlassian API token when `JIRA_API_TOKEN` is exported; otherwise reuse the default token store at `~/.jira-oauth/tokens.json`. Run `jira status` when unsure which is active.
-4. Use write commands only when the user explicitly asks to assign or transition an issue, update issue content, add worklog time, or delete a comment.
+4. Use write commands only when the user explicitly asks to assign or transition an issue, update issue content, upload/attach a file, add worklog time, or delete a comment.
 5. Treat API tokens, access tokens, refresh tokens, Authorization headers, OAuth client secrets, and raw token-store contents as sensitive. Never echo `$JIRA_API_TOKEN`.
 
 ## Authentication
@@ -128,10 +128,14 @@ jira create "Onboard new service" --project OPS --type Task --assign-me
 
 - `--project <key>` and `--type <name>` are always required; there is no default. `--type` is a
   Jira issue type display name (`Task`, `Bug`, `Story`, `Subtask`, ...), matched case-insensitively.
+  Exact display names are site-specific — for example, some sites use `Sub-task` (hyphenated)
+  instead of `Subtask`. Never guess a spelling variant; if the name doesn't match, retry with the
+  exact name the CLI lists in its `Available: ...` error.
 - Optional: `--text`/`--text-file`/`--adf-file` (at most one, same rules as `describe`/`comment`),
-  `--priority <name>`, `--label <name>` (repeatable), `--field <name=value>` (repeatable, same
-  display-name resolution as `jira fields update`, no prior `jira fields discover`/`pin` needed),
-  `--parent <key>` (required for a subtask issue type, refused otherwise).
+  `--priority <name>`, `--label <name>` (repeatable), `--field <name=value>` / `--field-file
+  <name=path>` (repeatable, same display-name resolution as `jira fields update`, no prior `jira
+  fields discover`/`pin` needed), `--parent <key>` (required for a subtask issue type, refused
+  otherwise).
 - The CLI validates locally before writing anything: unsupported priority/labels for that project,
   a missing `--parent` on a subtask type, and any other project-required field not already covered —
   each fails with the exact field name(s), never a bare Jira error.
@@ -139,8 +143,54 @@ jira create "Onboard new service" --project OPS --type Task --assign-me
   same deterministic resolution as `jira assign`. If that follow-up assignment is ambiguous or
   fails, the ticket is still created — the CLI warns instead of rolling back, then retry with
   `jira assign <new-key> ...`.
-- Creating an issue is a write and requires explicit user intent. File attachments cannot be
-  included at creation time; this package's attachment support is read-only.
+- Creating an issue is a write and requires explicit user intent. Attach local files right after
+  creation with repeatable `--file <path>`. The issue is created first; a failed follow-up upload
+  warns on stderr instead of rolling back or failing the command — retry with `jira attach
+  <new-key> <file>`. JSON output adds an `attachments` array (same shape as `jira attach`, below)
+  only when at least one file was attached.
+- Use `--no-notify-users` only when the user explicitly wants to suppress Jira's creation
+  notifications.
+
+Upload files or images to an existing issue, and optionally try to render one inline, only when the user explicitly asks:
+
+```bash
+jira attach OPS-123 ./screenshot.png
+jira attach OPS-123 ./a.txt ./b.txt
+jira attach OPS-123 ./screenshot.png --embed comment
+jira attach OPS-123 ./screenshot.png --embed description
+```
+
+- Every file in one `jira attach` call uploads in a single request; each file is capped at
+  10,000,000 bytes by default, checked before any request is sent.
+- `--embed <comment|description>` (exactly one file at a time) is **undocumented Jira behavior**,
+  not a supported API contract: it extracts a Media Services file id from an attachment
+  content-endpoint redirect that Atlassian has changed before and could change again without
+  notice. When the id cannot be resolved, the upload still succeeds and the command prints a
+  warning instead of failing — never treat an unresolved embed as a broken upload.
+- JSON output returns `issueKey` and an `attachments` array (`id`, `filename`, `mimeType`, `size`
+  per file). With `--embed`, it also includes an `embed` object: `{ target, resolved: true,
+  commentId }` on success (`commentId` only for the `comment` target), or `{ target, resolved:
+  false, warning }` when the id could not be resolved.
+
+To build a description with several images and text blocks in a specific order (image, text,
+image, text, ...), alternate `jira attach <key> <file> --embed description` (each call appends one
+image to the end) with `jira describe <key> --text "..." --append` (each call appends one text
+paragraph to the end) — call them in the exact order the content should appear:
+
+```bash
+jira attach OPS-123 step-1.png --embed description
+jira describe OPS-123 --text "Explanation after step 1." --append
+jira attach OPS-123 step-2.png --embed description
+jira describe OPS-123 --text "Explanation after step 2." --append
+```
+
+- `--append` is required for every `jira describe` call in this sequence, even though the
+  description already contains media from the prior `--embed` — `--append` is the one write mode
+  that never applies the media-replacement guard described below, so it is always safe to alternate
+  this way. A plain `--text` write without `--append` would be refused once media is present.
+- The same alternation works for a mix of `--embed comment` and `--embed description` calls; each
+  targets its own body (a new comment vs. the description) independently, so interleaving them
+  does not require any particular order relative to each other.
 
 Print the current raw description ADF when the user needs to inspect or safely edit a complex description:
 
@@ -184,7 +234,7 @@ jira describe OPS-123 --text "Additional notes" --append
 - Plain text becomes ADF paragraphs; blank lines split paragraphs and single newlines become hard breaks.
 - `jira describe` checks Jira edit metadata before writing.
 - If the current description contains media, plain-text replacement is refused unless `--force` is passed. Prefer `--append` or a `--print` to `--adf-file` round-trip that preserves the media nodes.
-- Native local-image inline embedding is unsupported because Jira attachments do not reliably expose the Media Services ID needed for ADF `media` file nodes.
+- Native local-image inline embedding has no officially supported API. Use `jira attach <key> <file> --embed description` for the best-effort, undocumented path, or a `--print`/`--adf-file` round trip for image-preserving edits.
 - Use `--no-notify-users` only when the user explicitly wants to suppress Jira notifications.
 
 Update a summary only when the user explicitly asks for a write:
